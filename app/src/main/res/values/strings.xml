@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">PaperGrainRecognition</string>
+    <string name="Original">Original</string>
+    <string name="ChoosePicture">Choose Picture</string>
+    <string name="ClearPicture">Clear Picture</string>
+    <string name="Sample">Sample</string>
+    <string name="btnBrightness">Brightness</string>
+    <string name="btnRecognition">Recognition</string>
+    <string name="btnResult">Result</string>
 </resources>

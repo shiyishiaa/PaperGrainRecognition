@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">纸纹识别</string>
+    <string name="Original">原图</string>
+    <string name="ChoosePicture">选择图片</string>
+    <string name="ClearPicture">清除图片</string>
+    <string name="Sample">样本</string>
+    <string name="btnBrightness">亮度</string>
+    <string name="btnRecognition">识别</string>
+    <string name="btnResult">结果</string>
+</resources>
