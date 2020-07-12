@@ -1,6 +1,241 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
-    android:layout_height="match_parent">
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".recognition"
+    tools:ignore="NestedWeights">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:id="@+id/OriginalFunctionsLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0">
+
+            <TextView
+                android:id="@+id/labelOriginalPicture"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/Original"
+                android:textColor="@color/Black"
+                android:textSize="20sp" />
+
+            <Button
+                android:id="@+id/btnOrginalChoosePicture"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/ChoosePicture" />
+
+            <Button
+                android:id="@+id/btnOrginalClearPicture"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/ClearPicture" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/imgOriginalPicture"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:layout_weight="1"
+            android:contentDescription="@string/Original"
+            tools:src="@tools:sample/avatars" />
+
+        <LinearLayout
+            android:id="@+id/SampleFunctionsLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0">
+
+            <TextView
+                android:id="@+id/labelSamplePicture"
+                android:layout_width="0dp"
+
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/Sample"
+                android:textColor="@color/Black"
+                android:textSize="20sp" />
+
+            <Button
+                android:id="@+id/btnSampleChoosePicture"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center"
+                android:text="@string/ChoosePicture" />
+
+            <Button
+                android:id="@+id/btnSampleClearPicture"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center"
+                android:text="@string/ClearPicture" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/imgSamplePicture"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:layout_weight="1"
+            android:contentDescription="@string/Sample"
+            tools:src="@tools:sample/avatars" />
+
+        <LinearLayout
+            android:id="@+id/StartStopLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnStart"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="40dp"
+                android:layout_marginVertical="5dp"
+                android:layout_weight="1"
+                android:background="@drawable/green_background"
+                android:text="@string/btnStart"
+                android:textColor="@color/White"
+                android:textSize="18sp" />
+
+            <Button
+                android:id="@+id/btnStop"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="40dp"
+                android:layout_marginVertical="5dp"
+                android:layout_weight="1"
+                android:background="@drawable/red_background"
+                android:text="@string/btnStop"
+                android:textColor="@color/White"
+                android:textSize="18sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/MenuLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/boarder"
+                android:orientation="vertical">
+
+                <ImageButton
+                    android:id="@+id/imBtnBrightness"
+                    android:layout_width="wrap_content"
+                    android:layout_height="50dp"
+                    android:layout_weight="1"
+                    android:background="#00000000"
+                    android:contentDescription="@string/descBrightness"
+                    android:padding="5dp"
+                    android:scaleType="centerInside"
+                    app:srcCompat="@drawable/sun" />
+
+                <TextView
+                    android:id="@+id/btnBrightness"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/btnBrightness"
+                    android:textColor="@color/Black"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/boarder"
+                android:orientation="vertical">
+
+                <ImageButton
+                    android:id="@+id/imBtnRecognition"
+                    android:layout_width="wrap_content"
+                    android:layout_height="50dp"
+                    android:layout_weight="1"
+                    android:background="#00000000"
+                    android:contentDescription="@string/descRecognition"
+                    android:padding="5dp"
+                    android:scaleType="centerInside"
+                    app:srcCompat="@drawable/magnifier" />
+
+                <TextView
+                    android:id="@+id/btnRecognition"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/btnRecognition"
+                    android:textColor="@color/Black"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/boarder"
+                android:orientation="vertical">
+
+                <ImageButton
+                    android:id="@+id/imBtnResult"
+                    android:layout_width="wrap_content"
+                    android:layout_height="50dp"
+                    android:layout_weight="1"
+                    android:background="#00000000"
+                    android:contentDescription="@string/descResult"
+                    android:padding="5dp"
+                    android:scaleType="centerInside"
+                    android:text="@string/btnBrightness"
+                    app:srcCompat="@drawable/write" />
+
+                <TextView
+                    android:id="@+id/btnResult"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/btnResult"
+                    android:textColor="@color/Black"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+
+        </LinearLayout>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

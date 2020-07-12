@@ -12,4 +12,10 @@
     <string name="descResult">Generate result</string>
     <string name="btnStart">Start</string>
     <string name="btnStop">Stop</string>
+    <string name="switchBluetooth">Bluetooth</string>
+    <string name="textPairingStatus">Pairing Status</string>
+    <string name="textPairing">Pairing</string>
+    <string name="textPaired">Paired</string>
+    <string name="textUnpaired">Unpaired</string>
+    <string name="textAdjustBrightness">Brightness</string>
 </resources>

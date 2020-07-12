@@ -13,4 +13,10 @@
     <string name="descResult">生成结果</string>
     <string name="btnStart">开始</string>
     <string name="btnStop">停止</string>
+    <string name="switchBluetooth">蓝牙</string>
+    <string name="textPairingStatus">配对状态</string>
+    <string name="textPairing">配对中</string>
+    <string name="textPaired">已配对</string>
+    <string name="textUnpaired">未配对</string>
+    <string name="textAdjustBrightness">亮度</string>
 </resources>
