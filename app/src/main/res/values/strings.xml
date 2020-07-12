@@ -7,4 +7,9 @@
     <string name="btnBrightness">Brightness</string>
     <string name="btnRecognition">Recognition</string>
     <string name="btnResult">Result</string>
+    <string name="descBrightness">Adjust brightness</string>
+    <string name="descRecognition">Choose picture</string>
+    <string name="descResult">Generate result</string>
+    <string name="btnStart">Start</string>
+    <string name="btnStop">Stop</string>
 </resources>

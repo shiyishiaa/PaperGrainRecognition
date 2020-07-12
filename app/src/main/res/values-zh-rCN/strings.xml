@@ -8,4 +8,9 @@
     <string name="btnBrightness">亮度</string>
     <string name="btnRecognition">识别</string>
     <string name="btnResult">结果</string>
+    <string name="descBrightness">调整亮度</string>
+    <string name="descRecognition">选择图片</string>
+    <string name="descResult">生成结果</string>
+    <string name="btnStart">开始</string>
+    <string name="btnStop">停止</string>
 </resources>
