@@ -1,4 +1,4 @@
-package com.grain.papergrainrecognition;
+package com.grain.PaperGrainRecognition;
 
 import androidx.appcompat.app.AppCompatActivity;
 

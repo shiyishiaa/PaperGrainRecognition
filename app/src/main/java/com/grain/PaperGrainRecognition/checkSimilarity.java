@@ -1,4 +1,4 @@
-package com.grain.papergrainrecognition;
+package com.grain.PaperGrainRecognition;
 
 public class checkSimilarity {
     private static final Double initial = 7.0, target = 10.0, lowest = 3.0;

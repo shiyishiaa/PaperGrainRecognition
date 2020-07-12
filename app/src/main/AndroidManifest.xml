@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.grain.papergrainrecognition">
+    package="com.grain.PaperGrainRecognition">
 
     <application
         android:allowBackup="true"
@@ -10,13 +10,15 @@
         android:supportsRtl="true"
         android:fullBackupContent="@xml/backup_descriptor"
         android:theme="@style/ColorTranslucentTheme">
-        <activity android:name=".recognition">
+        <activity android:name="com.grain.PaperGrainRecognition.recognition">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name="com.grain.PaperGrainRecognition.brightness" />
+        <activity android:name="com.grain.PaperGrainRecognition.result" />
     </application>
 
 </manifest>

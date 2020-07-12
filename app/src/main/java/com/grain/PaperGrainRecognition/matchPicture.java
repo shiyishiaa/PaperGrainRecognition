@@ -1,4 +1,4 @@
-package com.grain.papergrainrecognition;
+package com.grain.PaperGrainRecognition;
 
 public class matchPicture implements Runnable {
     public static Double match(String file_1, String file_2) {
