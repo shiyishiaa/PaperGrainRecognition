@@ -19,4 +19,8 @@
     <string name="textPaired">已配对</string>
     <string name="textUnpaired">未配对</string>
     <string name="textAdjustBrightness">亮度</string>
+    <string name="textMatchGroup">匹配组数</string>
+    <string name="textSSIM">SSIM值</string>
+    <string name="textMatchResult">匹配结果</string>
+    <string name="descMatchPicture">显示匹配结果</string>
 </resources>

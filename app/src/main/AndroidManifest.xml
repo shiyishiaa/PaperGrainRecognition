@@ -17,8 +17,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.grain.PaperGrainRecognition.brightness" />
-        <activity android:name="com.grain.PaperGrainRecognition.result" />
+        <activity android:name="com.grain.PaperGrainRecognition.brightness">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name="com.grain.PaperGrainRecognition.result">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

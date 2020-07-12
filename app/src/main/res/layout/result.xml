@@ -17,124 +17,88 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
-            android:id="@+id/OriginalFunctionsLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="0">
-
-            <TextView
-                android:id="@+id/labelOriginalPicture"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/Original"
-                android:textColor="@color/Black"
-                android:textSize="20sp" />
-
-            <Button
-                android:id="@+id/btnOrginalChoosePicture"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="@string/ChoosePicture" />
-
-            <Button
-                android:id="@+id/btnOrginalClearPicture"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="@string/ClearPicture" />
-        </LinearLayout>
-
-        <ImageView
-            android:id="@+id/imgOriginalPicture"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
+            android:layout_margin="10dp"
             android:layout_weight="1"
-            android:contentDescription="@string/Original"
-            tools:src="@tools:sample/avatars" />
+            android:orientation="vertical">
 
-        <LinearLayout
-            android:id="@+id/SampleFunctionsLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0">
 
-            <TextView
-                android:id="@+id/labelSamplePicture"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:id="@+id/GroupLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:orientation="horizontal">
 
+                <TextView
+                    android:id="@+id/textGroup"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/textMatchGroup"
+                    android:textSize="24sp" />
+
+                <Spinner
+                    android:id="@+id/spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:entries="@array/picture_index" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/SSIMLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/textSSIM"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/textSSIM"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:id="@+id/textValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="24sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ResultLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/textMatchResult"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/textMatchResult"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:id="@+id/textResult"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="24sp" />
+
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/matchPicture"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/Sample"
-                android:textColor="@color/Black"
-                android:textSize="20sp" />
-
-            <Button
-                android:id="@+id/btnSampleChoosePicture"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:gravity="center"
-                android:text="@string/ChoosePicture" />
-
-            <Button
-                android:id="@+id/btnSampleClearPicture"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:gravity="center"
-                android:text="@string/ClearPicture" />
-        </LinearLayout>
-
-        <ImageView
-            android:id="@+id/imgSamplePicture"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:layout_weight="1"
-            android:contentDescription="@string/Sample"
-            tools:src="@tools:sample/avatars" />
-
-        <LinearLayout
-            android:id="@+id/StartStopLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnStart"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="40dp"
-                android:layout_marginVertical="5dp"
-                android:layout_weight="1"
-                android:background="@drawable/green_background"
-                android:text="@string/btnStart"
-                android:textColor="@color/White"
-                android:textSize="18sp" />
-
-            <Button
-                android:id="@+id/btnStop"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="40dp"
-                android:layout_marginVertical="5dp"
-                android:layout_weight="1"
-                android:background="@drawable/red_background"
-                android:text="@string/btnStop"
-                android:textColor="@color/White"
-                android:textSize="18sp" />
+                android:contentDescription="@string/descMatchPicture"
+                app:srcCompat="@drawable/green_background" />
         </LinearLayout>
 
         <LinearLayout

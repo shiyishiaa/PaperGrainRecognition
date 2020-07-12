@@ -18,4 +18,8 @@
     <string name="textPaired">Paired</string>
     <string name="textUnpaired">Unpaired</string>
     <string name="textAdjustBrightness">Brightness</string>
+    <string name="textMatchGroup">Match Group</string>
+    <string name="textSSIM">SSIM Value</string>
+    <string name="textMatchResult">Match Result</string>
+    <string name="descMatchPicture">Display Match Result</string>
 </resources>
