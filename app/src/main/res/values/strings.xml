@@ -1,9 +1,9 @@
 <resources>
     <string name="app_name">PaperGrainRecognition</string>
-    <string name="Original">Original</string>
-    <string name="ChoosePicture">Choose Picture</string>
-    <string name="ClearPicture">Clear Picture</string>
-    <string name="Sample">Sample</string>
+    <string name="labelOriginal">Original</string>
+    <string name="btnChoosePicture">Choose Picture</string>
+    <string name="btnOpenCamera">Open Camera</string>
+    <string name="labelSample">Sample</string>
     <string name="btnBrightness">Brightness</string>
     <string name="btnRecognition">Recognition</string>
     <string name="btnResult">Result</string>
@@ -22,4 +22,6 @@
     <string name="textSSIM">SSIM Value</string>
     <string name="textMatchResult">Match Result</string>
     <string name="descMatchPicture">Display Match Result</string>
+    <string name="stringInstallFileManager">Please install file manager</string>
+    <string name="stringChoosePicture">Please choose picture</string>
 </resources>

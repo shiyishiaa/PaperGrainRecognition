@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.grain.PaperGrainRecognition">
+    package="com.grain.grain">
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
 
     <application
         android:allowBackup="true"
@@ -10,27 +15,14 @@
         android:supportsRtl="true"
         android:fullBackupContent="@xml/backup_descriptor"
         android:theme="@style/ColorTranslucentTheme">
-        <activity android:name="com.grain.PaperGrainRecognition.recognition">
+        <activity android:name="com.grain.grain.ui.recognition">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.grain.PaperGrainRecognition.brightness">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity android:name="com.grain.PaperGrainRecognition.result">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+        <activity android:name="com.grain.grain.ui.brightness" />
+        <activity android:name="com.grain.grain.ui.result" />
     </application>
 
 </manifest>

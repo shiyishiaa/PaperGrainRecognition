@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">纸纹识别</string>
-    <string name="Original">原图</string>
-    <string name="ChoosePicture">选择图片</string>
-    <string name="ClearPicture">清除图片</string>
-    <string name="Sample">样本</string>
+    <string name="labelOriginal">原图</string>
+    <string name="btnChoosePicture">选择图片</string>
+    <string name="btnOpenCamera">打开相机</string>
+    <string name="labelSample">样本</string>
     <string name="btnBrightness">亮度</string>
     <string name="btnRecognition">识别</string>
     <string name="btnResult">结果</string>
@@ -23,4 +23,6 @@
     <string name="textSSIM">SSIM值</string>
     <string name="textMatchResult">匹配结果</string>
     <string name="descMatchPicture">显示匹配结果</string>
+    <string name="stringInstallFileManager">请安装文件管理器</string>
+    <string name="stringChoosePicture">请选择图片</string>
 </resources>

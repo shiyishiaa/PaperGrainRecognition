@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".recognition"
+    tools:context=".ui.recognition"
     tools:ignore="NestedWeights">
 
     <LinearLayout
@@ -28,34 +28,34 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="@string/Original"
+                android:text="@string/labelOriginal"
                 android:textColor="@color/Black"
                 android:textSize="24sp" />
 
             <Button
                 style="?android:attr/buttonBarButtonStyle"
-                android:id="@+id/btnOrginalChoosePicture"
+                android:id="@+id/btnOriginalChoosePicture"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="@string/ChoosePicture" />
+                android:text="@string/btnChoosePicture" />
 
             <Button
                 style="?android:attr/buttonBarButtonStyle"
-                android:id="@+id/btnOrginalClearPicture"
+                android:id="@+id/btnOriginalOpenCamera"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="@string/ClearPicture" />
+                android:text="@string/btnOpenCamera" />
         </LinearLayout>
 
         <ImageView
-            android:id="@+id/imgOriginalPicture"
+            android:id="@+id/imgViewOriginalPicture"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_gravity="center"
             android:layout_weight="1"
-            android:contentDescription="@string/Original"
+            android:contentDescription="@string/labelOriginal"
             tools:src="@tools:sample/avatars" />
 
         <LinearLayout
@@ -71,7 +71,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="@string/Sample"
+                android:text="@string/labelSample"
                 android:textColor="@color/Black"
                 android:textSize="24sp" />
 
@@ -82,25 +82,25 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="0"
                 android:gravity="center"
-                android:text="@string/ChoosePicture" />
+                android:text="@string/btnChoosePicture" />
 
             <Button
                 style="?android:attr/buttonBarButtonStyle"
-                android:id="@+id/btnSampleClearPicture"
+                android:id="@+id/btnSampleOpenCamera"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="0"
                 android:gravity="center"
-                android:text="@string/ClearPicture" />
+                android:text="@string/btnOpenCamera" />
         </LinearLayout>
 
         <ImageView
-            android:id="@+id/imgSamplePicture"
+            android:id="@+id/imgViewSamplePicture"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_gravity="center"
             android:layout_weight="1"
-            android:contentDescription="@string/Sample"
+            android:contentDescription="@string/labelSample"
             tools:src="@tools:sample/avatars" />
 
         <LinearLayout
