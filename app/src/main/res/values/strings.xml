@@ -24,4 +24,7 @@
     <string name="descMatchPicture">Display Match Result</string>
     <string name="stringInstallFileManager">Please install file manager</string>
     <string name="stringChoosePicture">Please choose picture</string>
+    <string name="stringON">ON</string>
+    <string name="stringOFF">OFF</string>
+    <string name="stringEnableBluetooth">Please enable bluetooth, or this application will not work correctly!</string>
 </resources>

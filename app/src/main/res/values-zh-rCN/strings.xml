@@ -25,4 +25,7 @@
     <string name="descMatchPicture">显示匹配结果</string>
     <string name="stringInstallFileManager">请安装文件管理器</string>
     <string name="stringChoosePicture">请选择图片</string>
+    <string name="stringON">开启</string>
+    <string name="stringOFF">关闭</string>
+    <string name="stringEnableBluetooth">请开启蓝牙，否则软件无法正常工作！</string>
 </resources>

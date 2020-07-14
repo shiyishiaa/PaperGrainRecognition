@@ -14,7 +14,7 @@ public class result extends AppCompatActivity {
         setContentView(R.layout.result);
     }
 
-    private void initial() {
+    private void initialize() {
         //TODO Initialize UI.
     }
 

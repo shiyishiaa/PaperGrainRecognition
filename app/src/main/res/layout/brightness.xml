@@ -31,58 +31,83 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:layout_marginBottom="10dp"
+                android:background="@drawable/gray_background"
                 android:text="@string/switchBluetooth"
-                android:textColor="#8A000000"
-                android:textSize="24sp" />
+                android:textOff="@string/stringOFF"
+                android:textOn="@string/stringON"
+                android:textSize="18sp" />
 
             <LinearLayout
-                android:id="@+id/PairLayout"
+                android:id="@+id/BluetoothFunctionLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:orientation="horizontal">
+                android:layout_marginStart="10dp"
+                android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/textPairingStatus"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:id="@+id/PairLayout"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/textPairingStatus"
-                    android:textSize="24sp" />
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/gray_background"
+                    android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/textIsPaired"
-                    android:layout_width="wrap_content"
+                    <TextView
+                        android:id="@+id/textPairingStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/textPairingStatus"
+                        android:textColor="@color/Black"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        android:id="@+id/textIsPaired"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:textSize="18sp" />
+
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/AdjustBrigtnessLayout"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textSize="24sp" />
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/gray_background"
+                    android:orientation="horizontal">
 
+                    <TextView
+                        android:id="@+id/textBrightness"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center|fill_horizontal|top"
+                        android:layout_weight="1"
+                        android:text="@string/textAdjustBrightness"
+                        android:textColor="@color/Black"
+                        android:textSize="18sp" />
 
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/textBrightnessPercentage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_weight="0"
+                        android:gravity="center"
+                        android:textColor="@color/Black"
+                        android:textSize="18sp" />
 
-            <LinearLayout
-                android:id="@+id/AdjustBrigtnessLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:orientation="horizontal">
+                    <SeekBar
+                        android:id="@+id/seekBarAdjustBrightness"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_weight="1"
+                        android:paddingHorizontal="15dp" />
 
-                <TextView
-                    android:id="@+id/textAdjustBrightness"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center|fill_horizontal|top"
-                    android:layout_weight="1"
-                    android:text="@string/textAdjustBrightness"
-                    android:textSize="24sp" />
-
-                <SeekBar
-                    android:id="@+id/seekBarAdjustBrightness"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_weight="1" />
-
+                </LinearLayout>
             </LinearLayout>
 
         </LinearLayout>

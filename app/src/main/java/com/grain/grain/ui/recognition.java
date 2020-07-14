@@ -42,12 +42,12 @@ public class recognition extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.recognition);
-        initial();
+        initialize();
 
         checkPermission();
     }
 
-    private void initial() {
+    private void initialize() {
         //原图：选择图片
         btnOriginalChoosePicture = findViewById(R.id.btnOriginalChoosePicture);
         btnOriginalChoosePicture.setOnClickListener(view -> choosePicture(PictureType.Original));
@@ -74,6 +74,12 @@ public class recognition extends AppCompatActivity {
         imBtnBrightness = findViewById(R.id.imBtnBrightness);
         imBtnRecognition = findViewById(R.id.imBtnRecognition);
         imBtnResult = findViewById(R.id.imBtnResult);
+
+        imBtnBrightness.setOnClickListener(view -> {
+            Intent intent = new Intent();
+            intent.setClass(recognition.this, brightness.class);
+            startActivity(intent);
+        });
     }
 
     public static String getFilePath(Context context, String dir) {
