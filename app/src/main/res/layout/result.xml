@@ -27,6 +27,7 @@
             <LinearLayout
                 android:id="@+id/GroupLayout"
                 android:layout_width="match_parent"
+                android:background="@drawable/gray_background"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
                 android:orientation="horizontal">
@@ -36,13 +37,15 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:textColor="@color/Black"
                     android:text="@string/textMatchGroup"
-                    android:textSize="24sp" />
+                    android:textSize="18sp" />
 
                 <Spinner
                     android:id="@+id/spinner"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:gravity="center"
                     android:entries="@array/picture_index" />
             </LinearLayout>
 
@@ -51,6 +54,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
+                android:background="@drawable/gray_background"
                 android:orientation="horizontal">
 
                 <TextView
@@ -59,19 +63,21 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/textSSIM"
-                    android:textSize="24sp" />
+                    android:textColor="@color/Black"
+                    android:textSize="18sp" />
 
                 <TextView
                     android:id="@+id/textValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:textSize="24sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/ResultLayout"
                 android:layout_width="match_parent"
+                android:background="@drawable/gray_background"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
                 android:orientation="horizontal">
@@ -82,19 +88,20 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/textMatchResult"
-                    android:textSize="24sp" />
+                    android:textColor="@color/Black"
+                    android:textSize="18sp" />
 
                 <TextView
                     android:id="@+id/textResult"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:textSize="24sp" />
+                    android:textSize="18sp" />
 
             </LinearLayout>
 
             <ImageView
-                android:id="@+id/matchPicture"
+                android:id="@+id/imageViewMatchPicture"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:contentDescription="@string/descMatchPicture"
