@@ -121,6 +121,7 @@
             android:orientation="horizontal">
 
             <LinearLayout
+                android:id="@+id/BrightnessLayout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
@@ -130,7 +131,7 @@
                 <ImageButton
                     android:id="@+id/imBtnBrightness"
                     android:layout_width="wrap_content"
-                    android:layout_height="50dp"
+                    android:layout_height="40dp"
                     android:layout_weight="1"
                     android:background="#00000000"
                     android:contentDescription="@string/descBrightness"
@@ -150,6 +151,7 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/RecognitionLayout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
@@ -159,7 +161,7 @@
                 <ImageButton
                     android:id="@+id/imBtnRecognition"
                     android:layout_width="wrap_content"
-                    android:layout_height="50dp"
+                    android:layout_height="40dp"
                     android:layout_weight="1"
                     android:background="#00000000"
                     android:contentDescription="@string/descRecognition"
@@ -179,6 +181,7 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/ResultLayout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
@@ -188,7 +191,7 @@
                 <ImageButton
                     android:id="@+id/imBtnResult"
                     android:layout_width="wrap_content"
-                    android:layout_height="50dp"
+                    android:layout_height="40dp"
                     android:layout_weight="1"
                     android:background="#00000000"
                     android:contentDescription="@string/descResult"

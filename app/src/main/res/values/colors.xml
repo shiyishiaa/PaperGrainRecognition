@@ -9,6 +9,6 @@
     <color name="White">#FFFFFF</color>
     <color name="Red">#F84838</color>
     <color name="Green">#54FF9F</color>
-    <color name="AndroidDefaultBlack">#8A000000</color>
+    <color name="AlphaGray">#10000000</color>
     <color name="Gray">#e4e3e3</color>
 </resources>

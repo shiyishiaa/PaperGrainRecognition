@@ -11,17 +11,19 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
-import android.view.View;
-import android.view.WindowManager;
+import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import com.grain.grain.R;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 
@@ -30,24 +32,22 @@ public class recognition extends AppCompatActivity {
             REQUEST_WRITE_EXTERNAL_STORAGE = 1,
             REQUEST_CAMERA = 2;
 
-    private int width, height;
-
     private Button btnOriginalChoosePicture, btnOriginalOpenCamera, btnSampleChoosePicture, btnSampleOpenCamere;
     private Button btnStart, btnStop;
     private ImageView imgViewOriginalPicture, imgViewSamplePicture;
 
     private ImageButton imBtnBrightness, imBtnRecognition, imBtnResult;
 
+    private LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout, MainLayout;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.recognition);
         initialize();
-
-        checkPermission();
     }
 
-    private void initialize() {
+    private void connect() {
         //原图：选择图片
         btnOriginalChoosePicture = findViewById(R.id.btnOriginalChoosePicture);
         btnOriginalChoosePicture.setOnClickListener(view -> choosePicture(PictureType.Original));
@@ -66,20 +66,82 @@ public class recognition extends AppCompatActivity {
 
         //原图样图显示区
         imgViewOriginalPicture = findViewById(R.id.imgViewOriginalPicture);
-        imgViewOriginalPicture.post(() -> getViewWidthAndHeight(imgViewOriginalPicture));
         imgViewSamplePicture = findViewById(R.id.imgViewSamplePicture);
-        imgViewSamplePicture.post(() -> getViewWidthAndHeight(imgViewSamplePicture));
 
         //菜单栏图片按钮
         imBtnBrightness = findViewById(R.id.imBtnBrightness);
         imBtnRecognition = findViewById(R.id.imBtnRecognition);
         imBtnResult = findViewById(R.id.imBtnResult);
 
+        BrightnessLayout = findViewById(R.id.BrightnessLayout);
+        RecognitionLayout = findViewById(R.id.RecognitionLayout);
+        ResultLayout = findViewById(R.id.ResultLayout);
+        MainLayout = findViewById(R.id.MainLayout);
+    }
+
+    private void initialize() {
+        connect();
+        checkPermission();
+        initializeMenuBar();
+    }
+
+    /**
+     * Initialize menu bar
+     */
+    private void initializeMenuBar() {
         imBtnBrightness.setOnClickListener(view -> {
             Intent intent = new Intent();
             intent.setClass(recognition.this, brightness.class);
             startActivity(intent);
+            this.finish();
+            overridePendingTransition(R.anim.in_from_left, R.anim.out_to_right);
         });
+        imBtnResult.setOnClickListener(view -> {
+            Intent intent = new Intent();
+            intent.setClass(recognition.this, result.class);
+            startActivity(intent);
+            this.finish();
+            overridePendingTransition(R.anim.in_from_right, R.anim.out_to_left);
+        });
+        RecognitionLayout.setBackgroundColor(getResources().getColor(R.color.AlphaGray));
+    }
+
+    // xStart stores the location where swipe gesture starts.
+    private float xStart = 0;
+    // xEnd stores the location where swipe gesture ends.
+    @SuppressWarnings("FieldCanBeLocal")
+    private float xEnd = 0;
+
+    /**
+     * Swipe to change interface
+     *
+     * @param event Touch Event
+     * @return false
+     */
+    @Override
+    public boolean onTouchEvent(@NotNull MotionEvent event) {
+        // Press start location
+        if (event.getAction() == MotionEvent.ACTION_DOWN)
+            xStart = event.getX();
+            // Press end location
+        else if (event.getAction() == MotionEvent.ACTION_UP) {
+            xEnd = event.getX();
+
+            // Change interface
+            Intent intent = new Intent();
+            if (xStart < xEnd) {
+                intent.setClass(recognition.this, brightness.class);
+                startActivity(intent);
+                this.finish();
+                overridePendingTransition(R.anim.in_from_left, R.anim.out_to_right);
+            } else if (xStart > xEnd) {
+                intent.setClass(recognition.this, result.class);
+                startActivity(intent);
+                this.finish();
+                overridePendingTransition(R.anim.in_from_right, R.anim.out_to_left);
+            }
+        }
+        return false;
     }
 
     public static String getFilePath(Context context, String dir) {
@@ -134,7 +196,7 @@ public class recognition extends AppCompatActivity {
         }
     }
 
-    private void setImageView(final ImageView imageView, String path, String file) {
+    public static void setImageView(final ImageView imageView, String path, String file) {
         final String RootPath = Environment.getExternalStorageDirectory().getAbsolutePath();
 
         BitmapFactory.Options options = new BitmapFactory.Options();
@@ -147,8 +209,8 @@ public class recognition extends AppCompatActivity {
         int picWidth = options.outWidth;
         //获取屏幕大小
         int picHeight = options.outHeight;
-        //获取窗口管理器
-        WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+        //获取宽高
+        int width = imageView.getWidth(), height = imageView.getHeight();
         //计算压缩比
         int wr = picWidth / width, hr = picHeight / height, r = 1;
         r = Math.max(Math.max(wr, hr), r);
@@ -156,15 +218,7 @@ public class recognition extends AppCompatActivity {
         options.inSampleSize = r;//设置压缩比
         options.inJustDecodeBounds = false;//设置加载图片内容
         Bitmap bm = BitmapFactory.decodeFile(path, options);
-        imgViewOriginalPicture.setImageBitmap(bm);
-    }
-
-    /**
-     * 获取控件宽、高
-     */
-    private void getViewWidthAndHeight(View view) {
-        width = view.getWidth();
-        height = view.getHeight();
+        imageView.setImageBitmap(bm);
     }
 
     /**

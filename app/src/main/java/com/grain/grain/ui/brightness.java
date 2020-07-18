@@ -2,12 +2,15 @@ package com.grain.grain.ui;
 
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.TranslateAnimation;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Switch;
@@ -16,6 +19,8 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.grain.grain.R;
+
+import org.jetbrains.annotations.NotNull;
 
 public class brightness extends AppCompatActivity {
     protected Switch switchBluetooth;
@@ -26,6 +31,10 @@ public class brightness extends AppCompatActivity {
 
     protected BluetoothAdapter bluetoothAdapter;
 
+    private ImageButton imBtnBrightness, imBtnRecognition, imBtnResult;
+
+    private LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,7 +43,44 @@ public class brightness extends AppCompatActivity {
         initialize();
     }
 
-    protected void connect() {
+    // xStart stores the location where swipe gesture starts.
+    private float xStart = 0;
+    // xEnd stores the location where swipe gesture ends.
+    @SuppressWarnings("FieldCanBeLocal")
+    private float xEnd = 0;
+
+    /**
+     * Swipe to change interface
+     *
+     * @param event Touch Event
+     * @return false
+     */
+    @Override
+    public boolean onTouchEvent(@NotNull MotionEvent event) {
+        // Press start location
+        if (event.getAction() == MotionEvent.ACTION_DOWN)
+            xStart = event.getX();
+            // Press end location
+        else if (event.getAction() == MotionEvent.ACTION_UP) {
+            xEnd = event.getX();
+            // Change interface
+            if (xStart > xEnd) {
+                Intent intent = new Intent();
+                intent.setClass(brightness.this, recognition.class);
+                startActivity(intent);
+                this.finish();
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        overridePendingTransition(R.anim.in_from_right, R.anim.out_to_left);
+    }
+
+    private void connect() {
         switchBluetooth = findViewById(R.id.switchBluetooth);
         textPairingStatus = findViewById(R.id.textPairingStatus);
         textIsPaired = findViewById(R.id.textIsPaired);
@@ -42,13 +88,38 @@ public class brightness extends AppCompatActivity {
         seekBarAdjustBrightness = findViewById(R.id.seekBarAdjustBrightness);
         textBrightnessPercentage = findViewById(R.id.textBrightnessPercentage);
         BluetoothFunctionLayout = findViewById(R.id.BluetoothFunctionLayout);
+
+        imBtnBrightness = findViewById(R.id.imBtnBrightness);
+        imBtnRecognition = findViewById(R.id.imBtnRecognition);
+        imBtnResult = findViewById(R.id.imBtnResult);
+
+        BrightnessLayout = findViewById(R.id.BrightnessLayout);
+        RecognitionLayout = findViewById(R.id.RecognitionLayout);
+        ResultLayout = findViewById(R.id.ResultLayout);
     }
 
-    protected void initialize() {
+    private void initialize() {
+        initializeMenuBar();
         initializeSwitch();
         initializeTextIsPaired();
         initializeSeekBarAdjustBrightness();
         initializeTextBrightnessPercentage();
+    }
+
+    private void initializeMenuBar() {
+        imBtnRecognition.setOnClickListener(view -> {
+            Intent intent = new Intent();
+            intent.setClass(brightness.this, recognition.class);
+            startActivity(intent);
+            this.finish();
+        });
+        imBtnResult.setOnClickListener(view -> {
+            Intent intent = new Intent();
+            intent.setClass(brightness.this, result.class);
+            startActivity(intent);
+            this.finish();
+        });
+        BrightnessLayout.setBackgroundColor(getResources().getColor(R.color.AlphaGray));
     }
 
     private void initializeTextBrightnessPercentage() {
@@ -86,11 +157,11 @@ public class brightness extends AppCompatActivity {
         if (bluetoothAdapter.isEnabled()) {
             textIsPaired.setText(R.string.stringON);
             textIsPaired.setTextColor(getResources().getColor(R.color.Green));
-            toggleBluetoothLabel(true);
+            BluetoothFunctionLayout.setVisibility(View.VISIBLE);
         } else {
             textIsPaired.setText(R.string.stringOFF);
             textIsPaired.setTextColor(getResources().getColor(R.color.Red));
-            toggleBluetoothLabel(false);
+            BluetoothFunctionLayout.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -129,7 +200,12 @@ public class brightness extends AppCompatActivity {
     }
 
     public int dip2px(Context context, float dpValue) {
-        final float scale = context.getResources().getDisplayMetrics().density;
+        float scale = 0;
+        try {
+            scale = context.getResources().getDisplayMetrics().density;
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
         return (int) (dpValue * scale + 0.5f);
     }
 
