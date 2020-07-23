@@ -22,14 +22,17 @@
     <string name="textSSIM">SSIM Value</string>
     <string name="textMatchResult">Match Result</string>
     <string name="descMatchPicture">Display Match Result</string>
-    <string name="stringInstallFileManager">Please install file manager</string>
-    <string name="stringChoosePicture">Please choose picture</string>
-    <string name="stringON">ON</string>
-    <string name="stringOFF">OFF</string>
-    <string name="stringEnableBluetooth">Please enable bluetooth, or this application will not work correctly!</string>
+    <string name="textInstallFileManager">Please install file manager</string>
+    <string name="textChoosePicture">Please choose picture</string>
+    <string name="textON">ON</string>
+    <string name="textOFF">OFF</string>
+    <string name="textEnableBluetooth">Please enable bluetooth, or this application will not work correctly!</string>
     <string name="FolderName" translatable="false">PaperGrain</string>
-    <string name="PicNotFound">Picture Not Found</string>
-    <string name="CAMERA_GRANTED" type="id">Camera Permission Granted</string>
-    <string name="CAMERA_DENIED">Camera Permission Denied</string>
-    <string name="WrongPairing">Wrong Pairing</string>
+    <string name="textPicNotFound">Picture Not Found</string>
+    <string name="textCameraGranted" type="id">Camera Permission Granted</string>
+    <string name="textCameraDenied">Camera Permission Denied</string>
+    <string name="textWrongPairing">Wrong Pairing</string>
+    <string name="textBluetoothStatus">Bluetooth Status</string>
+    <string name="textUnexpectedError">Unexpected Error</string>
+    <string name="textUnpairing">Unpairing</string>
 </resources>

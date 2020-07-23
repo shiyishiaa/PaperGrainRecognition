@@ -14,27 +14,34 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.TranslateAnimation;
+import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.IntDef;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.grain.grain.R;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.io.OutputStream;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.List;
-import java.util.UUID;
+import java.util.Objects;
 
 public class brightness extends AppCompatActivity {
     protected Switch switchBluetooth;
-    protected TextView textPairingStatus, textIsConnected;
+    protected TextView textBluetoothStatus, textBluetoothIsOpen;
     protected TextView textBrightness, textBrightnessPercentage;
+    protected TextView textPairingStatus, textBluetoothIsPairing;
     protected SeekBar seekBarAdjustBrightness;
     protected LinearLayout BluetoothFunctionLayout;
 
@@ -50,6 +57,7 @@ public class brightness extends AppCompatActivity {
         setContentView(R.layout.brightness);
         connect();
         initialize();
+        autoCheckPairingStatus();
     }
 
     // xStart stores the location where swipe gesture starts.
@@ -86,16 +94,31 @@ public class brightness extends AppCompatActivity {
     @Override
     public void finish() {
         super.finish();
+        // Refresh bluetooth status when activity finished.
+        switch (bluetoothAdapter.getState()) {
+            case BluetoothAdapter.STATE_TURNING_OFF:
+            case BluetoothAdapter.STATE_OFF:
+                switchBluetooth.setChecked(false);
+                break;
+            case BluetoothAdapter.STATE_TURNING_ON:
+            case BluetoothAdapter.STATE_ON:
+                switchBluetooth.setChecked(true);
+                break;
+            default:
+                backgroundedToast(R.string.textUnexpectedError, Toast.LENGTH_LONG);
+        }
         overridePendingTransition(R.anim.in_from_right, R.anim.out_to_left);
     }
 
     private void connect() {
         switchBluetooth = findViewById(R.id.switchBluetooth);
-        textPairingStatus = findViewById(R.id.textPairingStatus);
-        textIsConnected = findViewById(R.id.textIsConnected);
+        textBluetoothStatus = findViewById(R.id.textBluetoothStatus);
+        textBluetoothIsOpen = findViewById(R.id.textBluetoothIsOpen);
         textBrightness = findViewById(R.id.textBrightness);
         seekBarAdjustBrightness = findViewById(R.id.seekBarAdjustBrightness);
         textBrightnessPercentage = findViewById(R.id.textBrightnessPercentage);
+        textPairingStatus = findViewById(R.id.textPairingStatus);
+        textBluetoothIsPairing = findViewById(R.id.textBluetoothIsPairing);
         BluetoothFunctionLayout = findViewById(R.id.BluetoothFunctionLayout);
 
         imBtnBrightness = findViewById(R.id.imBtnBrightness);
@@ -135,39 +158,82 @@ public class brightness extends AppCompatActivity {
         textBrightnessPercentage.setText(String.valueOf(seekBarAdjustBrightness.getProgress()));
     }
 
+    Handler pairingStatusHandler = new Handler();
+
+    private void autoCheckPairingStatus() {
+        pairingStatusHandler.postDelayed(() -> {
+            switch (bluetoothAdapter.getProfileConnectionState(BluetoothProfile.A2DP)) {
+                case BluetoothAdapter.STATE_CONNECTING:
+                    textBluetoothIsPairing.setText(R.string.textPairing);
+                    break;
+
+                case BluetoothAdapter.STATE_CONNECTED:
+                    textBluetoothIsPairing.setText(R.string.textPaired);
+                    seekBarAdjustBrightness.setEnabled(true);
+                    break;
+
+                case BluetoothAdapter.STATE_DISCONNECTING:
+                    textBluetoothIsPairing.setText(R.string.textUnpairing);
+                    seekBarAdjustBrightness.setEnabled(false);
+                    break;
+
+                case BluetoothAdapter.STATE_DISCONNECTED:
+                    textBluetoothIsPairing.setText(R.string.textUnpaired);
+                    break;
+            }
+            autoCheckPairingStatus();
+        }, 500);
+    }
+
     private void initializeSwitch() {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         switchBluetooth.setChecked(bluetoothAdapter.isEnabled());
 
-        switchBluetooth.setOnCheckedChangeListener((compoundButton, isChecked) -> {
-            switchBluetooth.setEnabled(false);
-
-            if (bluetoothAdapter.isEnabled()) {
-                bluetoothAdapter.disable();
-                textIsConnected = findViewById(R.id.textIsConnected);
-                textIsConnected.setTextColor(this.getColor(R.color.Red));
-                seekBarAdjustBrightness.setEnabled(false);
-                toggleBluetoothLabel(false);
-            } else {
-                bluetoothAdapter.enable();
-                textIsConnected.setTextColor(this.getColor(R.color.Green));
-                seekBarAdjustBrightness.setEnabled(true);
-                toggleBluetoothLabel(true);
-            }
-
-            Handler handler = new Handler(Looper.getMainLooper());
-            handler.postDelayed(() -> switchBluetooth.setEnabled(true), getResources().getInteger(R.integer.bluetooth_delay_time));
-        });
+        switchBluetooth.setOnCheckedChangeListener(mOnOnCheckedChangeListener);
     }
+
+    Switch.OnCheckedChangeListener mOnOnCheckedChangeListener = (compoundButton, b) -> {
+        switchBluetooth.setEnabled(false);
+
+        if (bluetoothAdapter.isEnabled()) {
+            bluetoothAdapter.disable();
+            textBluetoothIsOpen.setTextColor(this.getColor(R.color.Red));
+            textBluetoothIsOpen.setText(R.string.textOFF);
+            textBluetoothIsPairing.setText(R.string.textUnpaired);
+            seekBarAdjustBrightness.setEnabled(false);
+            toggleBluetoothLabel(false);
+        } else {
+            bluetoothAdapter.enable();
+            textBluetoothIsOpen.setTextColor(this.getColor(R.color.Green));
+            textBluetoothIsOpen.setText(R.string.textON);
+            toggleBluetoothLabel(true);
+        }
+
+        // Enable Switch until Switch function fully utilized.
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.postDelayed(() -> {
+            synchronized (this) {
+                while (bluetoothAdapter.getState() == BluetoothAdapter.STATE_TURNING_OFF
+                        || bluetoothAdapter.getState() == BluetoothAdapter.STATE_TURNING_ON) {
+                    try {
+                        this.wait(500);
+                    } catch (InterruptedException e) {
+                        backgroundedToast(e.getMessage(), Toast.LENGTH_LONG);
+                    }
+                }
+                switchBluetooth.setEnabled(true);
+            }
+        }, getResources().getInteger(R.integer.bluetooth_delay_time));
+    };
 
     private void initializeTextIsPaired() {
         if (bluetoothAdapter.isEnabled()) {
-            textIsConnected.setText(R.string.stringON);
-            textIsConnected.setTextColor(getResources().getColor(R.color.Green));
+            textBluetoothIsOpen.setText(R.string.textON);
+            textBluetoothIsOpen.setTextColor(this.getColor(R.color.Green));
             BluetoothFunctionLayout.setVisibility(View.VISIBLE);
         } else {
-            textIsConnected.setText(R.string.stringOFF);
-            textIsConnected.setTextColor(getResources().getColor(R.color.Red));
+            textBluetoothIsOpen.setText(R.string.textOFF);
+            textBluetoothIsOpen.setTextColor(this.getColor(R.color.Red));
             BluetoothFunctionLayout.setVisibility(View.INVISIBLE);
         }
     }
@@ -186,8 +252,7 @@ public class brightness extends AppCompatActivity {
                             List<BluetoothDevice> mDevices = bluetoothProfile.getConnectedDevices();
                             if (mDevices != null && mDevices.size() > 0) {
                                 for (BluetoothDevice device : mDevices) {
-                                    Toast.makeText(brightness.this,
-                                            device.getName() + "," + device.getAddress(), Toast.LENGTH_SHORT).show();
+                                    backgroundedToast(device.getName() + "," + device.getAddress(), Toast.LENGTH_LONG);
                                     //TODO Sending message through bluetooth.
                                 }
                             }
@@ -198,9 +263,8 @@ public class brightness extends AppCompatActivity {
 
                         }
                     }, BluetoothProfile.A2DP);
-                } else {
-                    Toast.makeText(brightness.this, R.string.WrongPairing, Toast.LENGTH_LONG).show();
-                }
+                } else
+                    backgroundedToast(R.string.textWrongPairing, Toast.LENGTH_LONG);
             }
 
             @Override
@@ -273,7 +337,21 @@ public class brightness extends AppCompatActivity {
         BluetoothFunctionLayout.startAnimation(setAnimation);
     }
 
-    private void adjustBrightness() {
-        //TODO Adjust brightness of the facility.
+
+    @IntDef({Toast.LENGTH_LONG, Toast.LENGTH_SHORT})
+    @Retention(RetentionPolicy.SOURCE)
+    private @interface DisplayTime {
+    }
+
+    private void backgroundedToast(@Nullable String msg, @DisplayTime int time) {
+        Toast toast = Toast.makeText(brightness.this, msg, time);
+        Objects.requireNonNull(toast.getView()).setBackgroundResource(R.drawable.toast_background);
+        toast.show();
+    }
+
+    private void backgroundedToast(@StringRes int msg, @DisplayTime int time) {
+        Toast toast = Toast.makeText(brightness.this, msg, time);
+        Objects.requireNonNull(toast.getView()).setBackgroundResource(R.drawable.toast_background);
+        toast.show();
     }
 }

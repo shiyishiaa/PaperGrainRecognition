@@ -33,8 +33,8 @@
                 android:layout_marginBottom="10dp"
                 android:background="@drawable/gray_background"
                 android:text="@string/switchBluetooth"
-                android:textOff="@string/stringOFF"
-                android:textOn="@string/stringON"
+                android:textOff="@string/textOFF"
+                android:textOn="@string/textON"
                 android:textSize="18sp" />
 
             <LinearLayout
@@ -45,7 +45,36 @@
                 android:orientation="vertical">
 
                 <LinearLayout
-                    android:id="@+id/PairLayout"
+                    android:id="@+id/BluetoothStatusLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginBottom="10dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/gray_background"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/textBluetoothStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/textBluetoothStatus"
+                        android:textColor="@color/Black"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        android:id="@+id/textBluetoothIsOpen"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:textSize="18sp" />
+
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/PairingStatusLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="10dp"
@@ -62,7 +91,7 @@
                         android:textSize="18sp" />
 
                     <TextView
-                        android:id="@+id/textIsConnected"
+                        android:id="@+id/textBluetoothIsPairing"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -126,7 +155,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:background="@drawable/boarder"
+                android:background="@drawable/menu_boarder"
                 android:orientation="vertical">
 
                 <ImageButton
@@ -156,7 +185,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:background="@drawable/boarder"
+                android:background="@drawable/menu_boarder"
                 android:orientation="vertical">
 
                 <ImageButton
@@ -186,7 +215,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:background="@drawable/boarder"
+                android:background="@drawable/menu_boarder"
                 android:orientation="vertical">
 
                 <ImageButton

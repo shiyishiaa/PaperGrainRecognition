@@ -5,6 +5,7 @@
     <color name="colorAccent">#03DAC5</color>
     <color name="colorStatusBar">#0EA6BE</color>
 
+    <color name="AlphaBlack">#D0000000</color>
     <color name="Black">#000000</color>
     <color name="White">#FFFFFF</color>
     <color name="Red">#F84838</color>

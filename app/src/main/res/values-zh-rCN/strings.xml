@@ -23,13 +23,16 @@
     <string name="textSSIM">SSIM值</string>
     <string name="textMatchResult">匹配结果</string>
     <string name="descMatchPicture">显示匹配结果</string>
-    <string name="stringInstallFileManager">请安装文件管理器</string>
-    <string name="stringChoosePicture">请选择图片</string>
-    <string name="stringON">开启</string>
-    <string name="stringOFF">关闭</string>
-    <string name="stringEnableBluetooth">请开启蓝牙，否则软件无法正常工作！</string>
-    <string name="PicNotFound">图片未找到</string>
-    <string name="CAMERA_GRANTED">相机已授权</string>
-    <string name="CAMERA_DENIED">相机未授权</string>
-    <string name="WrongPairing">错误配对</string>
+    <string name="textInstallFileManager">请安装文件管理器</string>
+    <string name="textChoosePicture">请选择图片</string>
+    <string name="textON">开启</string>
+    <string name="textOFF">关闭</string>
+    <string name="textEnableBluetooth">请开启蓝牙，否则软件无法正常工作！</string>
+    <string name="textPicNotFound">图片未找到</string>
+    <string name="textCameraGranted">相机已授权</string>
+    <string name="textCameraDenied">相机未授权</string>
+    <string name="textWrongPairing">错误配对</string>
+    <string name="textBluetoothStatus">蓝牙状态</string>
+    <string name="textUnexpectedError">意外错误</string>
+    <string name="textUnpairing">解除配对中</string>
 </resources>

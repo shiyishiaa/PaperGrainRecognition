@@ -227,11 +227,11 @@ public class recognition extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_CAMERA) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, R.string.CAMERA_GRANTED, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, R.string.textCameraGranted, Toast.LENGTH_LONG).show();
                 Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
                 startActivityForResult(cameraIntent, REQUEST_ORIGINAL_CAMERA);
             } else {
-                Toast.makeText(this, R.string.CAMERA_DENIED, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, R.string.textCameraDenied, Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -313,7 +313,7 @@ public class recognition extends AppCompatActivity {
             else if (type == PictureType.Sample)
                 startActivityForResult(intent, REQUEST_SAMPLE_IMAGE);
         } catch (ActivityNotFoundException e) {
-            Toast.makeText(this, R.string.stringInstallFileManager, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.textInstallFileManager, Toast.LENGTH_SHORT).show();
         }
     }
 
