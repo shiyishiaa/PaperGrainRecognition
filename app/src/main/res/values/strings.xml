@@ -27,4 +27,9 @@
     <string name="stringON">ON</string>
     <string name="stringOFF">OFF</string>
     <string name="stringEnableBluetooth">Please enable bluetooth, or this application will not work correctly!</string>
+    <string name="FolderName" translatable="false">PaperGrain</string>
+    <string name="PicNotFound">Picture Not Found</string>
+    <string name="CAMERA_GRANTED" type="id">Camera Permission Granted</string>
+    <string name="CAMERA_DENIED">Camera Permission Denied</string>
+    <string name="WrongPairing">Wrong Pairing</string>
 </resources>

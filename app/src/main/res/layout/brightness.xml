@@ -62,11 +62,12 @@
                         android:textSize="18sp" />
 
                     <TextView
-                        android:id="@+id/textIsPaired"
+                        android:id="@+id/textIsConnected"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:gravity="end"
+                        android:text="@string/textUnpaired"
                         android:textSize="18sp" />
 
 

@@ -41,6 +41,12 @@ public class result extends AppCompatActivity {
         initialize();
     }
 
+    private void initialize() {
+        connect();
+        initializeMenuBar();
+        initializeSpinner();
+    }
+
     // xStart stores the location where swipe gesture starts.
     private float xStart = 0;
     // xEnd stores the location where swipe gesture ends.
@@ -62,7 +68,7 @@ public class result extends AppCompatActivity {
         else if (event.getAction() == MotionEvent.ACTION_UP) {
             xEnd = event.getX();
             // Change interface
-            if (xStart < xEnd) {
+            if (xStart < xEnd && Math.abs(xEnd - xStart) >= getResources().getInteger(R.integer.minimum_move_distance)) {
                 Intent intent = new Intent();
                 intent.setClass(result.this, recognition.class);
                 startActivity(intent);
@@ -72,13 +78,16 @@ public class result extends AppCompatActivity {
         return false;
     }
 
+    /**
+     * Rewrite finish(), adding Animation.
+     */
     @Override
     public void finish() {
         super.finish();
         overridePendingTransition(R.anim.in_from_left, R.anim.out_to_right);
     }
 
-    private void initialize() {
+    private void connect() {
         //TODO Initialize UI.
         textGroup = findViewById(R.id.textGroup);
         spinner = findViewById(R.id.spinner);
@@ -98,17 +107,24 @@ public class result extends AppCompatActivity {
 
         databaseHelper = new DatabaseHelper(this, "History", null, 1);
         sqLiteDatabase = databaseHelper.getWritableDatabase();
-
-        initializeMenuBar();
     }
 
-    private void chooseGroup() {
+    private void initializeSpinner() {
         //TODO Check every group result.
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                if (i == 1) {
-                    recognition.setImageView(imageViewMatchPicture, "", "1.jpg");
+                switch (i) {
+                    case 0:
+                    case 1:
+                    case 2:
+                    case 3:
+                    case 4:
+                    case 5:
+                    case 6:
+                    case 7:
+                    case 8:
+                    case 9:
                 }
             }
 

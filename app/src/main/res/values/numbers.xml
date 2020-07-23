@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="duration">150</integer>
+    <integer name="minimum_move_distance">300</integer>
+    <integer name="bluetooth_delay_time">1500</integer>
+</resources>

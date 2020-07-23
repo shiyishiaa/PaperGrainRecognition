@@ -59,7 +59,7 @@
 
         <ImageView
             android:id="@+id/imgViewOriginalPicture"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
             android:layout_weight="1"
@@ -108,7 +108,7 @@
 
         <ImageView
             android:id="@+id/imgViewSamplePicture"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
             android:layout_weight="1"

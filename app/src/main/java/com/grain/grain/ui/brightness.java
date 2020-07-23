@@ -1,9 +1,13 @@
 package com.grain.grain.ui;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AlphaAnimation;
@@ -15,6 +19,7 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -22,9 +27,13 @@ import com.grain.grain.R;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.OutputStream;
+import java.util.List;
+import java.util.UUID;
+
 public class brightness extends AppCompatActivity {
     protected Switch switchBluetooth;
-    protected TextView textPairingStatus, textIsPaired;
+    protected TextView textPairingStatus, textIsConnected;
     protected TextView textBrightness, textBrightnessPercentage;
     protected SeekBar seekBarAdjustBrightness;
     protected LinearLayout BluetoothFunctionLayout;
@@ -64,7 +73,7 @@ public class brightness extends AppCompatActivity {
         else if (event.getAction() == MotionEvent.ACTION_UP) {
             xEnd = event.getX();
             // Change interface
-            if (xStart > xEnd) {
+            if (xStart > xEnd && Math.abs(xEnd - xStart) >= getResources().getInteger(R.integer.minimum_move_distance)) {
                 Intent intent = new Intent();
                 intent.setClass(brightness.this, recognition.class);
                 startActivity(intent);
@@ -83,7 +92,7 @@ public class brightness extends AppCompatActivity {
     private void connect() {
         switchBluetooth = findViewById(R.id.switchBluetooth);
         textPairingStatus = findViewById(R.id.textPairingStatus);
-        textIsPaired = findViewById(R.id.textIsPaired);
+        textIsConnected = findViewById(R.id.textIsConnected);
         textBrightness = findViewById(R.id.textBrightness);
         seekBarAdjustBrightness = findViewById(R.id.seekBarAdjustBrightness);
         textBrightnessPercentage = findViewById(R.id.textBrightnessPercentage);
@@ -129,38 +138,36 @@ public class brightness extends AppCompatActivity {
     private void initializeSwitch() {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         switchBluetooth.setChecked(bluetoothAdapter.isEnabled());
+
         switchBluetooth.setOnCheckedChangeListener((compoundButton, isChecked) -> {
-            bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            switchBluetooth.setEnabled(false);
+
             if (bluetoothAdapter.isEnabled()) {
                 bluetoothAdapter.disable();
-                textIsPaired = findViewById(R.id.textIsPaired);
-                textIsPaired.setText(R.string.stringOFF);
-                textIsPaired.setTextColor(getResources().getColor(R.color.Red));
+                textIsConnected = findViewById(R.id.textIsConnected);
+                textIsConnected.setTextColor(this.getColor(R.color.Red));
                 seekBarAdjustBrightness.setEnabled(false);
                 toggleBluetoothLabel(false);
             } else {
                 bluetoothAdapter.enable();
-//                        if (bluetoothAdapter.isEnabled()) {
-                textIsPaired.setText(R.string.stringON);
-                textIsPaired.setTextColor(getResources().getColor(R.color.Green));
+                textIsConnected.setTextColor(this.getColor(R.color.Green));
                 seekBarAdjustBrightness.setEnabled(true);
                 toggleBluetoothLabel(true);
-//                        } else {
-//                            Toast.makeText(brightness.this, R.string.stringEnableBluetooth, Toast.LENGTH_LONG).show();
-//                            switchBluetooth.setChecked(false);
-//                    }
             }
+
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.postDelayed(() -> switchBluetooth.setEnabled(true), getResources().getInteger(R.integer.bluetooth_delay_time));
         });
     }
 
     private void initializeTextIsPaired() {
         if (bluetoothAdapter.isEnabled()) {
-            textIsPaired.setText(R.string.stringON);
-            textIsPaired.setTextColor(getResources().getColor(R.color.Green));
+            textIsConnected.setText(R.string.stringON);
+            textIsConnected.setTextColor(getResources().getColor(R.color.Green));
             BluetoothFunctionLayout.setVisibility(View.VISIBLE);
         } else {
-            textIsPaired.setText(R.string.stringOFF);
-            textIsPaired.setTextColor(getResources().getColor(R.color.Red));
+            textIsConnected.setText(R.string.stringOFF);
+            textIsConnected.setTextColor(getResources().getColor(R.color.Red));
             BluetoothFunctionLayout.setVisibility(View.INVISIBLE);
         }
     }
@@ -170,21 +177,30 @@ public class brightness extends AppCompatActivity {
         seekBarAdjustBrightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                // 设置文本显示
                 textBrightnessPercentage.setText(String.valueOf(progress));
-//                // 获取文本宽度
-//                float textWidth = textBrightnessPercentage.getWidth();
-//                // 获取seekbar最左端的x位置
-//                float left = seekBar.getLeft();
-//                // 进度条的刻度值
-//                float max = Math.abs(seekBar.getMax());
-//                //这不叫thumb的宽度,叫seekbar距左边宽度,实验了一下，seekbar 不是顶格的，两头都存在一定空间
-//                // 所以xml 需要用paddingStart 和 paddingEnd 来确定具体空了多少值,我这里设置15dp;
-//                float thumb = dip2px(brightness.this, 15);
-//                // 每移动1个单位，text应该变化的距离 = (seekBar的宽度 - 两头空的空间) / 总的progress长度
-//                float average = (((float) seekBar.getWidth()) - 2 * thumb) / max;
-//                //textview 应该所处的位置 = seekbar最左端 + seekbar左端空的空间 + 当前progress应该加的长度 - textview宽度的一半(保持居中作用)
-//                float pox = left - textWidth / 2 + thumb + average * (float) progress;
+                if (bluetoothAdapter.getProfileConnectionState(BluetoothProfile.A2DP) ==
+                        BluetoothAdapter.STATE_CONNECTED) {
+                    bluetoothAdapter.getProfileProxy(brightness.this, new BluetoothProfile.ServiceListener() {
+                        @Override
+                        public void onServiceConnected(int i, BluetoothProfile bluetoothProfile) {
+                            List<BluetoothDevice> mDevices = bluetoothProfile.getConnectedDevices();
+                            if (mDevices != null && mDevices.size() > 0) {
+                                for (BluetoothDevice device : mDevices) {
+                                    Toast.makeText(brightness.this,
+                                            device.getName() + "," + device.getAddress(), Toast.LENGTH_SHORT).show();
+                                    //TODO Sending message through bluetooth.
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void onServiceDisconnected(int i) {
+
+                        }
+                    }, BluetoothProfile.A2DP);
+                } else {
+                    Toast.makeText(brightness.this, R.string.WrongPairing, Toast.LENGTH_LONG).show();
+                }
             }
 
             @Override

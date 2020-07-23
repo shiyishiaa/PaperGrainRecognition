@@ -28,4 +28,8 @@
     <string name="stringON">开启</string>
     <string name="stringOFF">关闭</string>
     <string name="stringEnableBluetooth">请开启蓝牙，否则软件无法正常工作！</string>
+    <string name="PicNotFound">图片未找到</string>
+    <string name="CAMERA_GRANTED">相机已授权</string>
+    <string name="CAMERA_DENIED">相机未授权</string>
+    <string name="WrongPairing">错误配对</string>
 </resources>
