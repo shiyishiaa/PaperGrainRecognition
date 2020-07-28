@@ -35,4 +35,5 @@
     <string name="textBluetoothStatus">Bluetooth Status</string>
     <string name="textUnexpectedError">Unexpected Error</string>
     <string name="textUnpairing">Unpairing</string>
+    <string name="textDisconnected">Disconnected</string>
 </resources>

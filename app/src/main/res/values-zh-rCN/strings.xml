@@ -35,4 +35,5 @@
     <string name="textBluetoothStatus">蓝牙状态</string>
     <string name="textUnexpectedError">意外错误</string>
     <string name="textUnpairing">解除配对中</string>
+    <string name="textDisconnected">配对解除</string>
 </resources>
