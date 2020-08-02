@@ -36,4 +36,5 @@
     <string name="textUnexpectedError">意外错误</string>
     <string name="textUnpairing">解除配对中</string>
     <string name="textDisconnected">配对解除</string>
+    <string name="textFailToLoadImage">加载图片失败！</string>
 </resources>

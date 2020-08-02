@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.icu.util.Calendar;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -22,6 +21,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.FileProvider;
 
 import com.grain.grain.FileUtils;
 import com.grain.grain.R;
@@ -31,33 +31,59 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.IOException;
 
-import static androidx.core.content.FileProvider.getUriForFile;
-
 public class recognition extends AppCompatActivity {
-    private enum PictureType {
-        Original, Sample
-    }
-
-    //Request codes
-    private static final int
+    // Request codes
+    static final int
             REQUEST_ORIGINAL_IMAGE = 0x1,
             REQUEST_SAMPLE_IMAGE = 0x2,
             REQUEST_ORIGINAL_CAMERA = 0x3,
             REQUEST_SAMPLE_CAMERA = 0x4,
             REQUEST_WRITE_EXTERNAL_STORAGE = 0x5;
-
-    private static final int
+    // Permission codes
+    static final int
             PERMISSION_CAMERA = 1;
+    // Storage path
+    String mCurrentPhotoPath;
+    // Various widgets
+    Button btnOriginalChoosePicture, btnOriginalOpenCamera, btnSampleChoosePicture, btnSampleOpenCamere;
+    Button btnStart, btnStop;
+    ImageView imgViewOriginalPicture, imgViewSamplePicture;
+    ImageButton imBtnBrightness, imBtnRecognition, imBtnResult;
+    LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout, MainLayout;
+    // xStart stores the location where swipe gesture starts.
+    float xStart = 0;
+    // xEnd stores the location where swipe gesture ends.
+    @SuppressWarnings("FieldCanBeLocal")
+    float xEnd = 0;
 
-    private Button btnOriginalChoosePicture, btnOriginalOpenCamera, btnSampleChoosePicture, btnSampleOpenCamere;
-    private Button btnStart, btnStop;
-    private ImageView imgViewOriginalPicture, imgViewSamplePicture;
-
-    private ImageButton imBtnBrightness, imBtnRecognition, imBtnResult;
-
-    private LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout, MainLayout;
-
-    static Uri capturedImageUri = null;
+    /**
+     * Load image with compression to save time.
+     *
+     * @param imageView the ImageView to be set
+     * @param imagePath the path of image to be loaded
+     */
+    public static void setImageView(final ImageView imageView, String imagePath) {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        //设置图片加载属性:不加载图片内容,只获取图片信息
+        options.inJustDecodeBounds = true;
+        //加载图片信息
+        BitmapFactory.decodeFile(imagePath, options);
+        //获取图片宽高
+        int picWidth = options.outWidth;
+        int picHeight = options.outHeight;
+        //获取宽高
+        int width = imageView.getWidth(), height = imageView.getHeight();
+        //计算压缩比
+        int wr = picWidth / width;
+        int hr = picHeight / height;
+        int r = 1;
+        r = Math.max(Math.max(wr, hr), r);
+        //压缩图片
+        options.inSampleSize = r;//设置压缩比
+        options.inJustDecodeBounds = false;//设置加载图片内容
+        Bitmap bm = BitmapFactory.decodeFile(imagePath, options);
+        imageView.setImageBitmap(bm);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,7 +98,6 @@ public class recognition extends AppCompatActivity {
         initializeMenuBar();
     }
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     private void connect() {
         //原图：选择图片
         btnOriginalChoosePicture = findViewById(R.id.btnOriginalChoosePicture);
@@ -80,34 +105,10 @@ public class recognition extends AppCompatActivity {
         //原图：打开相机
         btnOriginalOpenCamera = findViewById(R.id.btnOriginalOpenCamera);
         btnOriginalOpenCamera.setOnClickListener(view -> {
-            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
                 requestPermissions(new String[]{Manifest.permission.CAMERA}, PERMISSION_CAMERA);
-            } else {
-                File imageFolder = new File(Environment.getExternalStorageDirectory(),getResources().getString(R.string.FolderName));
-                if (!imageFolder.exists()) {
-                    imageFolder.mkdir();
-                }
-                File image = new File(imageFolder, (Calendar.getInstance().getTimeInMillis() + ".jpg"));
-                if (!image.exists()) {
-                    try {
-                        image.createNewFile();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    image.delete();
-                    try {
-                        image.createNewFile();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                capturedImageUri = getUriForFile(this, "com.grain.grain", image);
-                Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, capturedImageUri)
-                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                startActivityForResult(intent, REQUEST_ORIGINAL_CAMERA);
-            }
+            else
+                dispatchTakePictureIntent(PictureType.Original);
         });
 
         //样图：选择图片
@@ -115,6 +116,12 @@ public class recognition extends AppCompatActivity {
         btnSampleChoosePicture.setOnClickListener(view -> choosePicture(PictureType.Sample));
         //样图：打开相机
         btnSampleOpenCamere = findViewById(R.id.btnSampleOpenCamera);
+        btnSampleOpenCamere.setOnClickListener(view -> {
+            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
+                requestPermissions(new String[]{Manifest.permission.CAMERA}, PERMISSION_CAMERA);
+            else
+                dispatchTakePictureIntent(PictureType.Sample);
+        });
 
         //开始和停止匹配
         btnStart = findViewById(R.id.btnStart);
@@ -156,12 +163,6 @@ public class recognition extends AppCompatActivity {
         RecognitionLayout.setBackgroundColor(getResources().getColor(R.color.AlphaGray));
     }
 
-    // xStart stores the location where swipe gesture starts.
-    private float xStart = 0;
-    // xEnd stores the location where swipe gesture ends.
-    @SuppressWarnings("FieldCanBeLocal")
-    private float xEnd = 0;
-
     /**
      * Swipe to change interface.
      *
@@ -198,29 +199,28 @@ public class recognition extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (data != null && resultCode == Activity.RESULT_OK) {
-            if (requestCode == REQUEST_ORIGINAL_CAMERA) {
-                Bitmap bitmap = null;
-                try {
-                    bitmap = MediaStore.Images.Media.getBitmap(getApplicationContext().getContentResolver(), capturedImageUri);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                imgViewOriginalPicture.setImageBitmap(bitmap);
-            } else {
-                // Load chosen image.
-                FileUtils fileUtils = new FileUtils(this);
-                String path = fileUtils.getPath(data.getData());
-                if (requestCode == REQUEST_ORIGINAL_IMAGE) {
-                    setImageView(imgViewOriginalPicture, path);
-                } else if (requestCode == REQUEST_SAMPLE_IMAGE) {
-                    setImageView(imgViewSamplePicture, path);
-                }
+        if (resultCode == Activity.RESULT_OK) {
+            switch (requestCode) {
+                case REQUEST_ORIGINAL_CAMERA:
+                    setImageView(imgViewOriginalPicture, mCurrentPhotoPath);
+                    break;
+                case REQUEST_SAMPLE_CAMERA:
+                    setImageView(imgViewSamplePicture, mCurrentPhotoPath);
+                    break;
+                case REQUEST_ORIGINAL_IMAGE:
+                    FileUtils originalFileUtils = new FileUtils(this);
+                    String originalPath = originalFileUtils.getPath(data.getData());
+                    setImageView(imgViewOriginalPicture, originalPath);
+                    break;
+                case REQUEST_SAMPLE_IMAGE:
+                    FileUtils sampleFileUtils = new FileUtils(this);
+                    String samplePath = sampleFileUtils.getPath(data.getData());
+                    setImageView(imgViewSamplePicture, samplePath);
+                    break;
             }
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -268,36 +268,6 @@ public class recognition extends AppCompatActivity {
     }
 
     /**
-     * Load image with compression to save time.
-     *
-     * @param imageView the ImageView to be set
-     * @param imagePath the path of image to be loaded
-     */
-    public static void setImageView(final ImageView imageView, String imagePath) {
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        //设置图片加载属性:不加载图片内容,只获取图片信息
-        options.inJustDecodeBounds = true;
-        //加载图片信息
-        BitmapFactory.decodeFile(imagePath, options);
-        //获取图片宽高
-        int picWidth = options.outWidth;
-        //获取屏幕大小
-        int picHeight = options.outHeight;
-        //获取宽高
-        int width = imageView.getWidth(), height = imageView.getHeight();
-        //计算压缩比
-        int wr = picWidth / width;
-        int hr = picHeight / height;
-        int r = 1;
-        r = Math.max(Math.max(wr, hr), r);
-        //压缩图片
-        options.inSampleSize = r;//设置压缩比
-        options.inJustDecodeBounds = false;//设置加载图片内容
-        Bitmap bm = BitmapFactory.decodeFile(imagePath, options);
-        imageView.setImageBitmap(bm);
-    }
-
-    /**
      * Choose image from file manager.
      */
     private void choosePicture(PictureType type) {
@@ -317,10 +287,6 @@ public class recognition extends AppCompatActivity {
         }
     }
 
-    private void openCamera() {
-        //TODO Open camera.
-    }
-
     private void startMatching() {
         //TODO Start matching provided image.
     }
@@ -329,6 +295,47 @@ public class recognition extends AppCompatActivity {
         //TODO Stop  matching provided image.
     }
 
+    private File createImageFile(PictureType type) throws IOException {
+        // Create an image file name
+        String imageFileName = Long.valueOf(System.currentTimeMillis()).toString();
+        File storageDir =
+                getExternalFilesDir(Environment.DIRECTORY_PICTURES + "/" +
+                        getString((type == PictureType.Original) ? R.string.OriginalFolderName : R.string.SampleFolderName));
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents
+        mCurrentPhotoPath = image.getAbsolutePath();
+        return image;
+    }
+
+    private void dispatchTakePictureIntent(PictureType type) {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // Ensure that there's a camera activity to handle the intent
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            // Create the File where the photo should go
+            File photoFile = null;
+            try {
+                photoFile = createImageFile(type);
+            } catch (IOException ex) {
+                // Error occurred while creating the File
+                Toast.makeText(this, R.string.textFailToLoadImage, Toast.LENGTH_LONG).show();
+            }
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this, "com.grain.grain.provider", photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, type == PictureType.Original ? REQUEST_ORIGINAL_CAMERA : REQUEST_SAMPLE_CAMERA);
+            }
+        }
+    }
+
+    private enum PictureType {
+        Original, Sample
+    }
 }
 
 

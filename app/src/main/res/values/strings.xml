@@ -27,7 +27,7 @@
     <string name="textON">ON</string>
     <string name="textOFF">OFF</string>
     <string name="textEnableBluetooth">Please enable bluetooth, or this application will not work correctly!</string>
-    <string name="FolderName" translatable="false">PaperGrain</string>
+    <string name="OriginalFolderName" translatable="false">Original</string>
     <string name="textPicNotFound">Picture Not Found</string>
     <string name="textCameraGranted" type="id">Camera Permission Granted</string>
     <string name="textCameraDenied">Camera Permission Denied</string>
@@ -36,4 +36,6 @@
     <string name="textUnexpectedError">Unexpected Error</string>
     <string name="textUnpairing">Unpairing</string>
     <string name="textDisconnected">Disconnected</string>
+    <string name="SampleFolderName" translatable="false">Sample</string>
+    <string name="textFailToLoadImage">Fail to load image!</string>
 </resources>
