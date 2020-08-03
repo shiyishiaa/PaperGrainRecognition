@@ -19,42 +19,52 @@
 
         <LinearLayout
             android:id="@+id/OriginalFunctionsLayout"
-            android:layout_marginVertical="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginVertical="10dp"
             android:layout_weight="0">
 
             <TextView
                 android:id="@+id/labelOriginalPicture"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
+                android:layout_marginHorizontal="10dp"
                 android:layout_weight="1"
+                android:background="@drawable/gray_background"
                 android:gravity="center"
                 android:text="@string/labelOriginal"
-                android:layout_marginHorizontal="10dp"
-                android:background="@drawable/gray_background"
                 android:textColor="@color/Black"
                 android:textSize="18sp" />
 
             <Button
+                android:id="@+id/btnOriginalChoose"
                 style="?android:attr/buttonBarButtonStyle"
-                android:id="@+id/btnOriginalChoosePicture"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="0"
                 android:gravity="center"
-                android:textSize="12sp"
-                android:text="@string/btnChoosePicture" />
+                android:text="@string/btnChoosePicture"
+                android:textSize="12sp" />
 
             <Button
+                android:id="@+id/btnOriginalCamera"
                 style="?android:attr/buttonBarButtonStyle"
-                android:id="@+id/btnOriginalOpenCamera"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="0"
-                android:textSize="12sp"
                 android:gravity="center"
-                android:text="@string/btnOpenCamera" />
+                android:text="@string/btnOpenCamera"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnOriginalClear"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center"
+                android:text="@string/btnClear"
+                android:textSize="12sp" />
         </LinearLayout>
 
         <ImageView
@@ -69,41 +79,52 @@
         <LinearLayout
             android:id="@+id/SampleFunctionsLayout"
             android:layout_width="match_parent"
-            android:layout_marginVertical="10dp"
             android:layout_height="wrap_content"
+            android:layout_marginVertical="10dp"
             android:layout_weight="0">
 
             <TextView
                 android:id="@+id/labelSamplePicture"
                 android:layout_width="0dp"
-                android:layout_marginHorizontal="10dp"
                 android:layout_height="match_parent"
+                android:layout_marginHorizontal="10dp"
                 android:layout_weight="1"
-                android:gravity="center"
                 android:background="@drawable/gray_background"
+                android:gravity="center"
                 android:text="@string/labelSample"
                 android:textColor="@color/Black"
                 android:textSize="18sp" />
 
             <Button
+                android:id="@+id/btnSampleChoose"
                 style="?android:attr/buttonBarButtonStyle"
-                android:id="@+id/btnSampleChoosePicture"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="0"
-                android:textSize="12sp"
                 android:gravity="center"
-                android:text="@string/btnChoosePicture" />
+                android:text="@string/btnChoosePicture"
+                android:textSize="12sp" />
 
             <Button
+                android:id="@+id/btnSampleCamera"
                 style="?android:attr/buttonBarButtonStyle"
-                android:id="@+id/btnSampleOpenCamera"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="12sp"
                 android:layout_weight="0"
                 android:gravity="center"
-                android:text="@string/btnOpenCamera" />
+                android:text="@string/btnOpenCamera"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnSampleClear"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center"
+                android:text="@string/btnClear"
+                android:textSize="12sp" />
+
         </LinearLayout>
 
         <ImageView
@@ -116,6 +137,7 @@
             tools:src="@tools:sample/avatars" />
 
         <LinearLayout
+            android:id="@+id/LaunchLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="0"
@@ -126,8 +148,8 @@
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginVertical="10dp"
                 android:layout_marginHorizontal="40dp"
+                android:layout_marginVertical="10dp"
                 android:layout_weight="1"
                 android:background="@drawable/green_background"
                 android:text="@string/btnStart"
@@ -139,8 +161,8 @@
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginVertical="10dp"
                 android:layout_marginHorizontal="40dp"
+                android:layout_marginVertical="10dp"
                 android:layout_weight="1"
                 android:background="@drawable/red_background"
                 android:text="@string/btnStop"

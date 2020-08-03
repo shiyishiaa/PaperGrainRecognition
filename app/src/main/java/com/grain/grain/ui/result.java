@@ -14,7 +14,7 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.grain.grain.DatabaseHelper;
+import com.grain.grain.PaperGrainDBHelper;
 import com.grain.grain.R;
 
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +31,7 @@ public class result extends AppCompatActivity {
     private LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout;
 
     public SQLiteDatabase sqLiteDatabase;
-    private DatabaseHelper databaseHelper;
+    private PaperGrainDBHelper paperGrainDBHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,9 +104,6 @@ public class result extends AppCompatActivity {
         BrightnessLayout = findViewById(R.id.BrightnessLayout);
         RecognitionLayout = findViewById(R.id.RecognitionLayout);
         ResultLayout = findViewById(R.id.ResultLayout);
-
-        databaseHelper = new DatabaseHelper(this, "History", null, 1);
-        sqLiteDatabase = databaseHelper.getWritableDatabase();
     }
 
     private void initializeSpinner() {

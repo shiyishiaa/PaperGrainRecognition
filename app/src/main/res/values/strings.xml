@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">PaperGrainRecognition</string>
     <string name="labelOriginal">Original</string>
-    <string name="btnChoosePicture">Choose Picture</string>
-    <string name="btnOpenCamera">Open Camera</string>
+    <string name="btnChoosePicture">Choose</string>
+    <string name="btnOpenCamera">Camera</string>
     <string name="labelSample">Sample</string>
     <string name="btnBrightness">Brightness</string>
     <string name="btnRecognition">Recognition</string>
@@ -38,4 +38,11 @@
     <string name="textDisconnected">Disconnected</string>
     <string name="SampleFolderName" translatable="false">Sample</string>
     <string name="textFailToLoadImage">Fail to load image!</string>
+    <string name="textAfterDenying">Please grant needed permission, or it will not work!</string>
+    <string name="textReadExternalStorageGranted">Read External Storage Granted</string>
+    <string name="textWriteExternalStorageGranted">Write External Storage Granted</string>
+    <string name="textReadExternalStorageDenied">Read External Storage Denied</string>
+    <string name="textWriteExternalStorageDenied">Write External Storage Denied</string>
+    <string name="textNullImage">Image does not exist!</string>
+    <string name="btnClear">Clear</string>
 </resources>

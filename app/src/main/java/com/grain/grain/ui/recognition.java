@@ -3,10 +3,13 @@ package com.grain.grain.ui;
 import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.icu.text.SimpleDateFormat;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -19,17 +22,23 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.StringDef;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
 
 import com.grain.grain.FileUtils;
+import com.grain.grain.PaperGrainDBHelper;
 import com.grain.grain.R;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.util.Date;
+import java.util.Locale;
 
 public class recognition extends AppCompatActivity {
     // Request codes
@@ -37,19 +46,20 @@ public class recognition extends AppCompatActivity {
             REQUEST_ORIGINAL_IMAGE = 0x1,
             REQUEST_SAMPLE_IMAGE = 0x2,
             REQUEST_ORIGINAL_CAMERA = 0x3,
-            REQUEST_SAMPLE_CAMERA = 0x4,
-            REQUEST_WRITE_EXTERNAL_STORAGE = 0x5;
+            REQUEST_SAMPLE_CAMERA = 0x4;
     // Permission codes
     static final int
-            PERMISSION_CAMERA = 1;
+            PERMISSION_CAMERA = 0xFF00,
+            PERMISSION_WRITE_EXTERNAL_STORAGE = 0xFF01,
+            PERMISSION_READ_EXTERNAL_STORAGE = 0xFF02;
     // Storage path
-    String mCurrentPhotoPath;
+    String originalPath, samplePath;
     // Various widgets
-    Button btnOriginalChoosePicture, btnOriginalOpenCamera, btnSampleChoosePicture, btnSampleOpenCamere;
+    Button btnOriginalChoosePicture, btnOriginalOpenCamera, btnOriginalClear, btnSampleChoosePicture, btnSampleOpenCamera, btnSampleClear;
     Button btnStart, btnStop;
     ImageView imgViewOriginalPicture, imgViewSamplePicture;
     ImageButton imBtnBrightness, imBtnRecognition, imBtnResult;
-    LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout, MainLayout;
+    LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout, MainLayout, LaunchLayout;
     // xStart stores the location where swipe gesture starts.
     float xStart = 0;
     // xEnd stores the location where swipe gesture ends.
@@ -94,44 +104,50 @@ public class recognition extends AppCompatActivity {
 
     private void initialize() {
         connect();
-        checkPermission();
+
+        checkPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
+        checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
         initializeMenuBar();
     }
 
     private void connect() {
-        //原图：选择图片
-        btnOriginalChoosePicture = findViewById(R.id.btnOriginalChoosePicture);
+        btnOriginalChoosePicture = findViewById(R.id.btnOriginalChoose);
         btnOriginalChoosePicture.setOnClickListener(view -> choosePicture(PictureType.Original));
-        //原图：打开相机
-        btnOriginalOpenCamera = findViewById(R.id.btnOriginalOpenCamera);
+        btnOriginalOpenCamera = findViewById(R.id.btnOriginalCamera);
         btnOriginalOpenCamera.setOnClickListener(view -> {
-            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
-                requestPermissions(new String[]{Manifest.permission.CAMERA}, PERMISSION_CAMERA);
-            else
-                dispatchTakePictureIntent(PictureType.Original);
+            checkPermission(Manifest.permission.CAMERA);
+            dispatchTakePictureIntent(PictureType.Original);
+        });
+        btnOriginalClear = findViewById(R.id.btnOriginalClear);
+        btnOriginalClear.setOnClickListener(v -> {
+            imgViewOriginalPicture.setImageBitmap(null);
+            originalPath = null;
         });
 
-        //样图：选择图片
-        btnSampleChoosePicture = findViewById(R.id.btnSampleChoosePicture);
+        btnSampleChoosePicture = findViewById(R.id.btnSampleChoose);
         btnSampleChoosePicture.setOnClickListener(view -> choosePicture(PictureType.Sample));
-        //样图：打开相机
-        btnSampleOpenCamere = findViewById(R.id.btnSampleOpenCamera);
-        btnSampleOpenCamere.setOnClickListener(view -> {
-            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
-                requestPermissions(new String[]{Manifest.permission.CAMERA}, PERMISSION_CAMERA);
-            else
-                dispatchTakePictureIntent(PictureType.Sample);
+        btnSampleOpenCamera = findViewById(R.id.btnSampleCamera);
+        btnSampleOpenCamera.setOnClickListener(view -> {
+            checkPermission(Manifest.permission.CAMERA);
+            dispatchTakePictureIntent(PictureType.Sample);
+        });
+        btnSampleClear = findViewById(R.id.btnSampleClear);
+        btnSampleClear.setOnClickListener(v -> {
+            imgViewSamplePicture.setImageBitmap(null);
+            samplePath = null;
         });
 
-        //开始和停止匹配
-        btnStart = findViewById(R.id.btnStart);
-        btnStop = findViewById(R.id.btnStop);
 
-        //原图样图显示区
+        btnStart = findViewById(R.id.btnStart);
+        btnStart.setOnClickListener(v -> startMatching());
+
+        btnStop = findViewById(R.id.btnStop);
+        btnStop.setOnClickListener(v -> stopMatching());
+
         imgViewOriginalPicture = findViewById(R.id.imgViewOriginalPicture);
         imgViewSamplePicture = findViewById(R.id.imgViewSamplePicture);
 
-        //菜单栏图片按钮
         imBtnBrightness = findViewById(R.id.imBtnBrightness);
         imBtnRecognition = findViewById(R.id.imBtnRecognition);
         imBtnResult = findViewById(R.id.imBtnResult);
@@ -140,6 +156,7 @@ public class recognition extends AppCompatActivity {
         RecognitionLayout = findViewById(R.id.RecognitionLayout);
         ResultLayout = findViewById(R.id.ResultLayout);
         MainLayout = findViewById(R.id.MainLayout);
+        LaunchLayout = findViewById(R.id.LaunchLayout);
     }
 
     /**
@@ -160,7 +177,7 @@ public class recognition extends AppCompatActivity {
             this.finish();
             overridePendingTransition(R.anim.in_from_right, R.anim.out_to_left);
         });
-        RecognitionLayout.setBackgroundColor(getResources().getColor(R.color.AlphaGray));
+        RecognitionLayout.setBackgroundColor(this.getColor(R.color.AlphaGray));
     }
 
     /**
@@ -202,19 +219,19 @@ public class recognition extends AppCompatActivity {
         if (resultCode == Activity.RESULT_OK) {
             switch (requestCode) {
                 case REQUEST_ORIGINAL_CAMERA:
-                    setImageView(imgViewOriginalPicture, mCurrentPhotoPath);
+                    setImageView(imgViewOriginalPicture, originalPath);
                     break;
                 case REQUEST_SAMPLE_CAMERA:
-                    setImageView(imgViewSamplePicture, mCurrentPhotoPath);
+                    setImageView(imgViewSamplePicture, samplePath);
                     break;
                 case REQUEST_ORIGINAL_IMAGE:
                     FileUtils originalFileUtils = new FileUtils(this);
-                    String originalPath = originalFileUtils.getPath(data.getData());
+                    originalPath = originalFileUtils.getPath(data.getData());
                     setImageView(imgViewOriginalPicture, originalPath);
                     break;
                 case REQUEST_SAMPLE_IMAGE:
                     FileUtils sampleFileUtils = new FileUtils(this);
-                    String samplePath = sampleFileUtils.getPath(data.getData());
+                    samplePath = sampleFileUtils.getPath(data.getData());
                     setImageView(imgViewSamplePicture, samplePath);
                     break;
             }
@@ -225,45 +242,58 @@ public class recognition extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_CAMERA) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, R.string.textCameraGranted, Toast.LENGTH_LONG).show();
-                Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-                startActivityForResult(cameraIntent, REQUEST_ORIGINAL_CAMERA);
-            } else {
-                Toast.makeText(this, R.string.textCameraDenied, Toast.LENGTH_LONG).show();
-            }
+        switch (requestCode) {
+            case PERMISSION_CAMERA:
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    Toast.makeText(this, R.string.textCameraGranted, Toast.LENGTH_LONG).show();
+                else
+                    Toast.makeText(this, R.string.textCameraDenied, Toast.LENGTH_LONG).show();
+                break;
+            case PERMISSION_READ_EXTERNAL_STORAGE:
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    Toast.makeText(this, R.string.textReadExternalStorageGranted, Toast.LENGTH_LONG).show();
+                else
+                    Toast.makeText(this, R.string.textReadExternalStorageDenied, Toast.LENGTH_LONG).show();
+                break;
+            case PERMISSION_WRITE_EXTERNAL_STORAGE:
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    Toast.makeText(this, R.string.textWriteExternalStorageGranted, Toast.LENGTH_LONG).show();
+                else
+                    Toast.makeText(this, R.string.textWriteExternalStorageDenied, Toast.LENGTH_LONG).show();
+                break;
         }
     }
 
     /**
      * Check if camera permission is given.
      */
-    private void checkPermission() {
-        //检查权限（NEED_PERMISSION）是否被授权 PackageManager.PERMISSION_GRANTED表示同意授权
+    private void checkPermission(@Permission String permission) {
+        // 检查权限（NEED_PERMISSION）是否被授权 PackageManager.PERMISSION_GRANTED表示同意授权
         if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            //用户已经拒绝过一次，再次弹出权限申请对话框需要给用户一个解释
+                permission) != PackageManager.PERMISSION_GRANTED) {
+            // 用户已经拒绝过一次，再次弹出权限申请对话框需要给用户一个解释
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                Toast.makeText(this, "请开通相关权限，否则无法正常使用本应用！", Toast.LENGTH_SHORT).show();
+                    permission)) {
+                Toast.makeText(this, R.string.textAfterDenying, Toast.LENGTH_SHORT).show();
             }
-            //申请权限
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    REQUEST_WRITE_EXTERNAL_STORAGE);
-        }
-        if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            //用户已经拒绝过一次，再次弹出权限申请对话框需要给用户一个解释
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.CAMERA)) {
-                Toast.makeText(this, "请开通相关权限，否则无法正常使用本应用！", Toast.LENGTH_SHORT).show();
+            // 申请权限
+            switch (permission) {
+                case Manifest.permission.CAMERA:
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            PERMISSION_CAMERA);
+                    break;
+                case Manifest.permission.WRITE_EXTERNAL_STORAGE:
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            PERMISSION_WRITE_EXTERNAL_STORAGE);
+                    break;
+                case Manifest.permission.READ_EXTERNAL_STORAGE:
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            PERMISSION_READ_EXTERNAL_STORAGE);
+                    break;
             }
-            //申请权限
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    REQUEST_ORIGINAL_CAMERA);
         }
     }
 
@@ -288,7 +318,25 @@ public class recognition extends AppCompatActivity {
     }
 
     private void startMatching() {
-        //TODO Start matching provided image.
+        if (originalPath == null || samplePath == null) {
+            Toast.makeText(this, R.string.textNullImage, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        PaperGrainDBHelper helper = new PaperGrainDBHelper(this);
+        SQLiteDatabase write = helper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(PaperGrainDBHelper.GrainEntry.COLUMN_NAME_ORIGINAL, originalPath);
+        values.put(PaperGrainDBHelper.GrainEntry.COLUMN_NAME_SAMPLE, samplePath);
+
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        Date curDate = new Date(System.currentTimeMillis());//获取当前时间
+        String str = formatter.format(curDate);
+
+        values.put(PaperGrainDBHelper.GrainEntry.COLUMN_NAME_TIME_START, str);
+        values.put(PaperGrainDBHelper.GrainEntry.COLUMN_NAME_DELETED, true);
+
+        write.insert(PaperGrainDBHelper.GrainEntry.TABLE_NAME, null, values);
     }
 
     private void stopMatching() {
@@ -308,7 +356,11 @@ public class recognition extends AppCompatActivity {
         );
 
         // Save a file: path for use with ACTION_VIEW intents
-        mCurrentPhotoPath = image.getAbsolutePath();
+        if (type == PictureType.Original)
+            originalPath = image.getAbsolutePath();
+        else
+            samplePath = image.getAbsolutePath();
+
         return image;
     }
 
@@ -328,13 +380,16 @@ public class recognition extends AppCompatActivity {
             if (photoFile != null) {
                 Uri photoURI = FileProvider.getUriForFile(this, "com.grain.grain.provider", photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(takePictureIntent, type == PictureType.Original ? REQUEST_ORIGINAL_CAMERA : REQUEST_SAMPLE_CAMERA);
+                startActivityForResult(takePictureIntent, (type == PictureType.Original) ? REQUEST_ORIGINAL_CAMERA : REQUEST_SAMPLE_CAMERA);
             }
         }
     }
 
-    private enum PictureType {
-        Original, Sample
+    private enum PictureType {Original, Sample}
+
+    @StringDef({Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE})
+    @Retention(RetentionPolicy.SOURCE)
+    private @interface Permission {
     }
 }
 

@@ -2,8 +2,8 @@
 <resources>
     <string name="app_name">纸纹识别</string>
     <string name="labelOriginal">原图</string>
-    <string name="btnChoosePicture">选择图片</string>
-    <string name="btnOpenCamera">打开相机</string>
+    <string name="btnChoosePicture">选择</string>
+    <string name="btnOpenCamera">相机</string>
     <string name="labelSample">样本</string>
     <string name="btnBrightness">亮度</string>
     <string name="btnRecognition">识别</string>
@@ -37,4 +37,11 @@
     <string name="textUnpairing">解除配对中</string>
     <string name="textDisconnected">配对解除</string>
     <string name="textFailToLoadImage">加载图片失败！</string>
+    <string name="textAfterDenying">请开通相关权限，否则无法正常使用本应用！</string>
+    <string name="textReadExternalStorageGranted">读取外部存储已授权</string>
+    <string name="textReadExternalStorageDenied">读取外部存储未授权</string>
+    <string name="textWriteExternalStorageGranted">写入外部存储已授权</string>
+    <string name="textWriteExternalStorageDenied">写入外部存储未授权</string>
+    <string name="textNullImage">图片不存在！</string>
+    <string name="btnClear">清除</string>
 </resources>
