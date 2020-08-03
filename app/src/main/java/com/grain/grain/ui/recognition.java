@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -32,6 +33,9 @@ import com.grain.grain.PaperGrainDBHelper;
 import com.grain.grain.R;
 
 import org.jetbrains.annotations.NotNull;
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
 
 import java.io.File;
 import java.io.IOException;
@@ -99,6 +103,7 @@ public class recognition extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.recognition);
+
         initialize();
     }
 
@@ -158,6 +163,28 @@ public class recognition extends AppCompatActivity {
         MainLayout = findViewById(R.id.MainLayout);
         LaunchLayout = findViewById(R.id.LaunchLayout);
     }
+
+    public void onResume() {
+        super.onResume();
+        if (!OpenCVLoader.initDebug()) {
+            Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
+        } else {
+            Log.d("OpenCV", "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
+    }
+
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            if (status == LoaderCallbackInterface.SUCCESS) {
+                Log.i("OpenCV", "OpenCV loaded successfully");
+            } else {
+                super.onManagerConnected(status);
+            }
+        }
+    };
 
     /**
      * Initialize menu bar
