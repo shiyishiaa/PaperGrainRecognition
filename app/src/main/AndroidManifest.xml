@@ -27,7 +27,6 @@
         </activity>
         <activity android:name=".ui.brightness" />
         <activity android:name=".ui.result" />
-        <activity android:name=".BluetoothDemo" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

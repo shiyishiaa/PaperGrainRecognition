@@ -3,25 +3,26 @@ package com.grain.grain;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.provider.BaseColumns;
 import android.util.Log;
+
+import static com.grain.grain.Columns.*;
 
 public class PaperGrainDBHelper extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "PaperGrain.db";
     public static final Integer DATABASE_VERSION = 1;
 
     private static final String SQL_CREATE_ENTRIES =
-            "CREATE TABLE " + GrainEntry.TABLE_NAME + " (" +
-                    GrainEntry._ID + " INTEGER PRIMARY KEY," +
-                    GrainEntry.COLUMN_NAME_ORIGINAL + " TEXT," +
-                    GrainEntry.COLUMN_NAME_SAMPLE + " TEXT," +
-                    GrainEntry.COLUMN_NAME_TIME_START + " DATE," +
-                    GrainEntry.COLUMN_NAME_TIME_END + "DATA," +
-                    GrainEntry.COLUMN_NAME_SSIM + " TEXT," +
-                    GrainEntry.COLUMN_NAME_DELETED + " BOOLEAN)";
+            "CREATE TABLE " + TABLE_NAME + " (" +
+                    _ID + " INTEGER PRIMARY KEY," +
+                    COLUMN_NAME_ORIGINAL + " TEXT," +
+                    COLUMN_NAME_SAMPLE + " TEXT," +
+                    COLUMN_NAME_TIME_START + " DATE," +
+                    COLUMN_NAME_TIME_END + "DATA," +
+                    COLUMN_NAME_SSIM + " TEXT," +
+                    COLUMN_NAME_DELETED + " BOOLEAN)";
 
     private static final String SQL_DELETE_ENTRIES =
-            "DROP TABLE IF EXISTS " + GrainEntry.TABLE_NAME;
+            "DROP TABLE IF EXISTS " + TABLE_NAME;
 
     public PaperGrainDBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -50,14 +51,7 @@ public class PaperGrainDBHelper extends SQLiteOpenHelper {
         // 直到getWritableDatabase() / getReadableDatabase() 第一次被调用时才会进行创建 / 打开 
     }
 
-    public static class GrainEntry implements BaseColumns {
-        public static final String TABLE_NAME = "grain";
-        public static final String COLUMN_NAME_ORIGINAL = "original";
-        public static final String COLUMN_NAME_SAMPLE = "sample";
-        public static final String COLUMN_NAME_TIME_START = "time_start";
-        public static final String COLUMN_NAME_TIME_END = "time_end";
-        public static final String COLUMN_NAME_SSIM = "SSIM";
-        public static final String COLUMN_NAME_DELETED = "deleted";
+    public static class GrainEntry implements Columns {
     }
 }
 

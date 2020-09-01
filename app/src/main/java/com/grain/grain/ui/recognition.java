@@ -28,6 +28,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
 
+import com.grain.grain.Columns;
 import com.grain.grain.FileUtils;
 import com.grain.grain.PaperGrainDBHelper;
 import com.grain.grain.R;
@@ -353,17 +354,17 @@ public class recognition extends AppCompatActivity {
         SQLiteDatabase write = helper.getWritableDatabase();
 
         ContentValues values = new ContentValues();
-        values.put(PaperGrainDBHelper.GrainEntry.COLUMN_NAME_ORIGINAL, originalPath);
-        values.put(PaperGrainDBHelper.GrainEntry.COLUMN_NAME_SAMPLE, samplePath);
+        values.put(Columns.COLUMN_NAME_ORIGINAL, originalPath);
+        values.put(Columns.COLUMN_NAME_SAMPLE, samplePath);
 
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         Date curDate = new Date(System.currentTimeMillis());//获取当前时间
         String str = formatter.format(curDate);
 
-        values.put(PaperGrainDBHelper.GrainEntry.COLUMN_NAME_TIME_START, str);
-        values.put(PaperGrainDBHelper.GrainEntry.COLUMN_NAME_DELETED, true);
+        values.put(Columns.COLUMN_NAME_TIME_START, str);
+        values.put(Columns.COLUMN_NAME_DELETED, true);
 
-        write.insert(PaperGrainDBHelper.GrainEntry.TABLE_NAME, null, values);
+        write.insert(Columns.TABLE_NAME, null, values);
     }
 
     private void stopMatching() {
