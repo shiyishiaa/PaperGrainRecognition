@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".ui.recognition"
@@ -18,156 +19,166 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
-            android:id="@+id/OriginalFunctionsLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginVertical="10dp"
-            android:layout_weight="0">
-
-            <TextView
-                android:id="@+id/labelOriginalPicture"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginHorizontal="10dp"
-                android:layout_weight="1"
-                android:background="@drawable/gray_background"
-                android:gravity="center"
-                android:text="@string/labelOriginal"
-                android:textColor="@color/Black"
-                android:textSize="18sp" />
-
-            <Button
-                android:id="@+id/btnOriginalChoose"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:gravity="center"
-                android:text="@string/btnChoosePicture"
-                android:textSize="12sp" />
-
-            <Button
-                android:id="@+id/btnOriginalCamera"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:gravity="center"
-                android:text="@string/btnOpenCamera"
-                android:textSize="12sp" />
-
-            <Button
-                android:id="@+id/btnOriginalClear"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:gravity="center"
-                android:text="@string/btnClear"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <ImageView
-            android:id="@+id/imgViewOriginalPicture"
+            android:id="@+id/RecognitionFunctionLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_gravity="center"
+            android:layout_margin="10dp"
             android:layout_weight="1"
-            android:contentDescription="@string/labelOriginal"
-            tools:src="@tools:sample/avatars" />
+            android:orientation="vertical">
 
-        <LinearLayout
-            android:id="@+id/SampleFunctionsLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginVertical="10dp"
-            android:layout_weight="0">
+            <LinearLayout
+                android:id="@+id/OriginalFunctionsLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="0">
 
-            <TextView
-                android:id="@+id/labelSamplePicture"
-                android:layout_width="0dp"
+                <TextView
+                    android:id="@+id/labelOriginalPicture"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/gray_background"
+                    android:gravity="center"
+                    android:text="@string/labelOriginal"
+                    android:textColor="@color/Black"
+                    android:textSize="18sp" />
+
+                <Button
+                    android:id="@+id/btnOriginalChoose"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:gravity="center"
+                    android:text="@string/btnChoosePicture"
+                    android:textSize="12sp" />
+
+                <Button
+                    android:id="@+id/btnOriginalCamera"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:gravity="center"
+                    android:text="@string/btnOpenCamera"
+                    android:textSize="12sp" />
+
+                <Button
+                    android:id="@+id/btnOriginalClear"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:gravity="center"
+                    android:text="@string/btnClear"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/imgBtnOriginal"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginHorizontal="10dp"
-                android:layout_weight="1"
-                android:background="@drawable/gray_background"
-                android:gravity="center"
-                android:text="@string/labelSample"
-                android:textColor="@color/Black"
-                android:textSize="18sp" />
-
-            <Button
-                android:id="@+id/btnSampleChoose"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:gravity="center"
-                android:text="@string/btnChoosePicture"
-                android:textSize="12sp" />
-
-            <Button
-                android:id="@+id/btnSampleCamera"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:gravity="center"
-                android:text="@string/btnOpenCamera"
-                android:textSize="12sp" />
-
-            <Button
-                android:id="@+id/btnSampleClear"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0"
-                android:gravity="center"
-                android:text="@string/btnClear"
-                android:textSize="12sp" />
-
-        </LinearLayout>
-
-        <ImageView
-            android:id="@+id/imgViewSamplePicture"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:layout_weight="1"
-            android:contentDescription="@string/labelSample"
-            tools:src="@tools:sample/avatars" />
-
-        <LinearLayout
-            android:id="@+id/LaunchLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnStart"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="40dp"
+                android:layout_gravity="center"
                 android:layout_marginVertical="10dp"
                 android:layout_weight="1"
-                android:background="@drawable/green_background"
-                android:text="@string/btnStart"
-                android:textColor="@color/White"
-                android:textSize="18sp" />
+                android:background="@color/Transparent"
+                android:contentDescription="@string/descOriginal"
+                android:scaleType="fitCenter"
+                tools:srcCompat="@tools:sample/backgrounds/scenic" />
 
-            <Button
-                android:id="@+id/btnStop"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/SampleFunctionsLayout"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="40dp"
+                android:layout_weight="0">
+
+                <TextView
+                    android:id="@+id/labelSamplePicture"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/gray_background"
+                    android:gravity="center"
+                    android:text="@string/labelSample"
+                    android:textColor="@color/Black"
+                    android:textSize="18sp" />
+
+                <Button
+                    android:id="@+id/btnSampleChoose"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:gravity="center"
+                    android:text="@string/btnChoosePicture"
+                    android:textSize="12sp" />
+
+                <Button
+                    android:id="@+id/btnSampleCamera"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:gravity="center"
+                    android:text="@string/btnOpenCamera"
+                    android:textSize="12sp" />
+
+                <Button
+                    android:id="@+id/btnSampleClear"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:gravity="center"
+                    android:text="@string/btnClear"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/imgBtnSample"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
                 android:layout_marginVertical="10dp"
                 android:layout_weight="1"
-                android:background="@drawable/red_background"
-                android:text="@string/btnStop"
-                android:textColor="@color/White"
-                android:textSize="18sp" />
+                android:background="@color/Transparent"
+                android:contentDescription="@string/descSample"
+                android:scaleType="fitCenter"
+                tools:srcCompat="@tools:sample/backgrounds/scenic" />
+
+            <LinearLayout
+                android:id="@+id/LaunchLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnStart"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="30dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/green_background"
+                    android:text="@string/btnStart"
+                    android:textColor="@color/White"
+                    android:textSize="18sp" />
+
+                <Button
+                    android:id="@+id/btnStop"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="30dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/red_background"
+                    android:text="@string/btnStop"
+                    android:textColor="@color/White"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
         </LinearLayout>
 
         <LinearLayout
@@ -273,5 +284,12 @@
         </LinearLayout>
 
     </LinearLayout>
+
+    <ImageView
+        android:id="@+id/expanded_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/description_zoom_touch_close"
+        android:visibility="invisible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

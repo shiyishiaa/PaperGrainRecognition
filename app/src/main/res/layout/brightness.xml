@@ -20,8 +20,7 @@
             android:id="@+id/BrightnessFunctionLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="10dp"
+            android:layout_margin="10dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -29,7 +28,6 @@
                 android:id="@+id/switchBluetooth"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
                 android:layout_marginBottom="10dp"
                 android:background="@drawable/gray_background"
                 android:text="@string/switchBluetooth"
@@ -47,7 +45,7 @@
                 <LinearLayout
                     android:id="@+id/BluetoothStatusLayout"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="0dp"
                     android:layout_marginBottom="10dp"
                     android:layout_weight="1"
                     android:background="@drawable/gray_background"
@@ -86,7 +84,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/textPairingStatus"
+                        android:text="@string/textConnectionStatus"
                         android:textColor="@color/Black"
                         android:textSize="18sp" />
 
@@ -96,14 +94,14 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:gravity="end"
-                        android:text="@string/textUnpaired"
+                        android:text="@string/textDisconnected"
                         android:textSize="18sp" />
 
 
                 </LinearLayout>
 
                 <LinearLayout
-                    android:id="@+id/AdjustBrigtnessLayout"
+                    android:id="@+id/AdjustBrightnessLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="10dp"

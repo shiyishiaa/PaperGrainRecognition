@@ -6,9 +6,11 @@ import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AlphaAnimation;
@@ -40,6 +42,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 public class brightness extends AppCompatActivity {
@@ -95,12 +99,34 @@ public class brightness extends AppCompatActivity {
     // xEnd stores the location where swipe gesture ends.
     @SuppressWarnings("FieldCanBeLocal")
     private float xEnd = 0;
+    private boolean mBackKeyPressed = false;
+    private SharedPreferences Config;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.brightness);
         initialize();
+    }
+
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
+            if (!mBackKeyPressed) {
+                backgroundedToast(R.string.textOneMoreClickToExit, Toast.LENGTH_SHORT);
+                mBackKeyPressed = true;
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        mBackKeyPressed = false;
+                    }
+                }, 2000);
+                return true;
+            } else
+                finish();
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     /**
@@ -268,7 +294,7 @@ public class brightness extends AppCompatActivity {
             switchBluetooth.setEnabled(true);
             textBluetoothIsOpen.setTextColor(brightness.this.getColor(R.color.Red));
             textBluetoothIsOpen.setText(R.string.textOFF);
-            textBluetoothIsPairing.setText(R.string.textUnpaired);
+            textBluetoothIsPairing.setText(R.string.textDisconnected);
             seekBarAdjustBrightness.setEnabled(false);
             toggleBluetoothLabel(false);
         }
@@ -281,22 +307,22 @@ public class brightness extends AppCompatActivity {
         pairingStatusHandler.postDelayed(() -> {
             switch (bluetoothAdapter.getProfileConnectionState(BluetoothProfile.A2DP)) {
                 case BluetoothAdapter.STATE_CONNECTING:
-                    textBluetoothIsPairing.setText(R.string.textPairing);
+                    textBluetoothIsPairing.setText(R.string.textConnecting);
                     break;
 
                 case BluetoothAdapter.STATE_CONNECTED:
-                    textBluetoothIsPairing.setText(R.string.textPaired);
+                    textBluetoothIsPairing.setText(R.string.textConnected);
                     onConnection();
                     seekBarAdjustBrightness.setEnabled(true);
                     break;
 
                 case BluetoothAdapter.STATE_DISCONNECTING:
-                    textBluetoothIsPairing.setText(R.string.textUnpairing);
+                    textBluetoothIsPairing.setText(R.string.textDisconnecting);
                     seekBarAdjustBrightness.setEnabled(false);
                     break;
 
                 case BluetoothAdapter.STATE_DISCONNECTED:
-                    textBluetoothIsPairing.setText(R.string.textUnpaired);
+                    textBluetoothIsPairing.setText(R.string.textDisconnected);
                     break;
             }
             autoCheckPairingStatus();
@@ -379,11 +405,10 @@ public class brightness extends AppCompatActivity {
 
                 @Override
                 public void onServiceDisconnected(int i) {
-                    backgroundedToast(R.string.textDisconnected, Toast.LENGTH_SHORT);
                 }
             }, BluetoothProfile.A2DP);
         } else
-            backgroundedToast(R.string.textWrongPairing, Toast.LENGTH_LONG);
+            backgroundedToast(R.string.textWrongConnecting, Toast.LENGTH_LONG);
     }
 
     private BluetoothSocket createBluetoothSocket(BluetoothDevice device)

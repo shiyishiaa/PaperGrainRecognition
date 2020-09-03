@@ -12,4 +12,6 @@
     <color name="Green">#54FF9F</color>
     <color name="AlphaGray">#10000000</color>
     <color name="Gray">#e4e3e3</color>
+
+    <color name="Transparent">#00000000</color>
 </resources>

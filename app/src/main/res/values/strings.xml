@@ -13,10 +13,10 @@
     <string name="btnStart">Start</string>
     <string name="btnStop">Stop</string>
     <string name="switchBluetooth">Bluetooth</string>
-    <string name="textPairingStatus">Pairing Status</string>
-    <string name="textPairing">Pairing</string>
-    <string name="textPaired">Paired</string>
-    <string name="textUnpaired">Unpaired</string>
+    <string name="textConnectionStatus">Connection Status</string>
+    <string name="textConnecting">Connecting</string>
+    <string name="textConnected">Connected</string>
+    <string name="textDisconnected">Disconnected</string>
     <string name="textAdjustBrightness">Brightness</string>
     <string name="textMatchGroup">Match Group</string>
     <string name="textSSIM">SSIM Value</string>
@@ -26,23 +26,40 @@
     <string name="textChoosePicture">Please choose picture</string>
     <string name="textON">ON</string>
     <string name="textOFF">OFF</string>
-    <string name="textEnableBluetooth">Please enable bluetooth, or this application will not work correctly!</string>
+    <string name="textAllowBluetooth">Please allow bluetooth, or this application will not work correctly!</string>
     <string name="OriginalFolderName" translatable="false">Original</string>
     <string name="textPicNotFound">Picture Not Found</string>
     <string name="textCameraGranted" type="id">Camera Permission Granted</string>
     <string name="textCameraDenied">Camera Permission Denied</string>
-    <string name="textWrongPairing">Wrong Pairing</string>
+    <string name="textWrongConnecting">Wrong Connecting</string>
     <string name="textBluetoothStatus">Bluetooth Status</string>
     <string name="textUnexpectedError">Unexpected Error</string>
-    <string name="textUnpairing">Unpairing</string>
-    <string name="textDisconnected">Disconnected</string>
+    <string name="textDisconnecting">Disconnecting</string>
     <string name="SampleFolderName" translatable="false">Sample</string>
     <string name="textFailToLoadImage">Fail to load image!</string>
-    <string name="textAfterDenying">Please grant needed permission, or it will not work!</string>
+    <string name="textAfterDenying">Please allow needed permission, or it will not work!</string>
     <string name="textReadExternalStorageGranted">Read External Storage Granted</string>
     <string name="textWriteExternalStorageGranted">Write External Storage Granted</string>
     <string name="textReadExternalStorageDenied">Read External Storage Denied</string>
     <string name="textWriteExternalStorageDenied">Write External Storage Denied</string>
     <string name="textNullImage">Image does not exist!</string>
     <string name="btnClear">Clear</string>
+    <string name="textOneMoreClickToExit">One more click to exit</string>
+    <string name="descToast">toast</string>
+    <string name="textAllowCamera">Please allow camera, or this function will not work correctly!</string>
+    <string name="textHistory">History</string>
+    <string name="btnDelete">Delete</string>
+    <string name="textEmptyDatabase">Empty Database</string>
+    <string name="textStartMatching">Start Processing!</string>
+    <string name="textBlank" translatable="false">" "</string>
+    <string name="textClearDesc">Are you sure to clear history? Once be performed, record cannot be restored!</string>
+    <string name="textConfirm">Confirm</string>
+    <string name="textCancel">Cancel</string>
+    <string name="textWarning">Warning</string>
+    <string name="textDeleteSucceeded">Succeeded to delete!</string>
+    <string name="textDeleteFailed">Failed to delete!</string>
+    <string name="labelMatch">Match</string>
+    <string name="descSample">Sample</string>
+    <string name="descOriginal">Original</string>
+    <string name="description_zoom_touch_close">Touch to close</string>
 </resources>
