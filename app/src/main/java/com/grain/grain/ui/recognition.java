@@ -79,7 +79,8 @@ public class recognition extends AppCompatActivity {
     // Storage path
     private String originalPath, samplePath;
     // Various widgets
-    private Button btnOriginalChoosePicture, btnOriginalOpenCamera, btnOriginalClear, btnSampleChoosePicture, btnSampleOpenCamera, btnSampleClear;
+    private Button btnOriginalChoosePicture, btnOriginalOpenCamera, btnOriginalClear;
+    private Button btnSampleChoosePicture, btnSampleOpenCamera, btnSampleClear;
     private Button btnStart, btnStop;
     private ImageButton imgBtnOriginal, imgBtnSample;
     private ImageButton menuBtnBrightness, menuBtnRecognition, menuBtnResult;
@@ -195,7 +196,6 @@ public class recognition extends AppCompatActivity {
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
     }
-
 
     /**
      * Initialize menu bar
@@ -327,7 +327,8 @@ public class recognition extends AppCompatActivity {
             utils.run();
 
             //backgroundedToast(utils.value.toString(), Toast.LENGTH_LONG);
-            imgBtnOriginal.setImageBitmap(utils.bmp);
+            imgBtnOriginal.setImageBitmap(utils.bmp1);
+            imgBtnSample.setImageBitmap(utils.bmp2);
         });
 
         btnSampleChoosePicture = findViewById(R.id.btnSampleChoose);
@@ -349,12 +350,16 @@ public class recognition extends AppCompatActivity {
 
         btnStart = findViewById(R.id.btnStart);
         btnStart.setOnClickListener(v -> {
+            if (imgBtnSample.getDrawable() == null || imgBtnOriginal.getDrawable() == null)
+                backgroundedToast(R.string.textNullImage, Toast.LENGTH_SHORT);
             writeConfig();
             startMatching();
         });
 
         btnStop = findViewById(R.id.btnStop);
         btnStop.setOnClickListener(v -> {
+            if (imgBtnSample.getDrawable() == null || imgBtnOriginal.getDrawable() == null)
+                backgroundedToast(R.string.textNullImage, Toast.LENGTH_SHORT);
             writeConfig();
             stopMatching();
         });

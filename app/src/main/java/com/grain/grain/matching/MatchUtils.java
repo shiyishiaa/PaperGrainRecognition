@@ -1,6 +1,7 @@
 package com.grain.grain.matching;
 
 import android.graphics.Bitmap;
+import android.util.Log;
 
 import org.opencv.android.Utils;
 import org.opencv.calib3d.Calib3d;
@@ -12,6 +13,8 @@ import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
+import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
@@ -19,11 +22,13 @@ import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.Features2d;
-import org.opencv.imgproc.Imgproc;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.xfeatures2d.SURF;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 import static org.opencv.core.Core.add;
 import static org.opencv.core.Core.divide;
@@ -31,14 +36,15 @@ import static org.opencv.core.Core.mean;
 import static org.opencv.core.Core.multiply;
 import static org.opencv.core.Core.subtract;
 import static org.opencv.imgcodecs.Imgcodecs.imread;
-import static org.opencv.imgproc.Imgproc.*;
 import static org.opencv.imgproc.Imgproc.COLOR_GRAY2RGBA;
 import static org.opencv.imgproc.Imgproc.COLOR_RGB2BGRA;
 import static org.opencv.imgproc.Imgproc.GaussianBlur;
+import static org.opencv.imgproc.Imgproc.calcHist;
 import static org.opencv.imgproc.Imgproc.cvtColor;
+import static org.opencv.imgproc.Imgproc.line;
 
 public class MatchUtils implements Runnable {
-    public Bitmap bmp;
+    public Bitmap bmp1, bmp2;
     public Double value;
     private String originalPath, samplePath;
 
@@ -47,13 +53,13 @@ public class MatchUtils implements Runnable {
         this.samplePath = Sample;
     }
 
-    public static Scalar getMSSIM(Mat i1, Mat i2) {
+    public static Scalar getMSSIM(Mat image1, Mat image2) {
         Scalar C1 = new Scalar(6.5025), C2 = new Scalar(58.5225);
         int d = CvType.CV_32F;
 
         Mat I1 = new Mat(), I2 = new Mat();
-        i1.convertTo(I1, d);           // cannot calculate on one byte large values
-        i2.convertTo(I2, d);
+        image1.convertTo(I1, d);           // cannot calculate on one byte large values
+        image2.convertTo(I2, d);
 
         Mat I2_2 = I2.mul(I2);        // I2^2
         Mat I1_2 = I1.mul(I1);        // I1^2
@@ -197,10 +203,178 @@ public class MatchUtils implements Runnable {
         return imgMatches;
     }
 
+    public static Mat plotRGBHist(Mat src) {
+        List<Mat> bgrPlanes = new ArrayList<>();
+        Core.split(src, bgrPlanes);
+        int histSize = 256;
+        float[] range = {0, 256}; //the upper boundary is exclusive
+        MatOfFloat histRange = new MatOfFloat(range);
+        Mat bHist = new Mat(), gHist = new Mat(), rHist = new Mat();
+        calcHist(bgrPlanes, new MatOfInt(0), new Mat(), bHist, new MatOfInt(histSize), histRange, false);
+        calcHist(bgrPlanes, new MatOfInt(1), new Mat(), gHist, new MatOfInt(histSize), histRange, false);
+        calcHist(bgrPlanes, new MatOfInt(2), new Mat(), rHist, new MatOfInt(histSize), histRange, false);
+        int histW = 512, histH = 400;
+        int binW = (int) Math.round((double) histW / histSize);
+        Mat histImage = new Mat(histH, histW, CvType.CV_8UC3, new Scalar(0, 0, 0));
+        Core.normalize(bHist, bHist, 0, histImage.rows(), Core.NORM_MINMAX);
+        Core.normalize(gHist, gHist, 0, histImage.rows(), Core.NORM_MINMAX);
+        Core.normalize(rHist, rHist, 0, histImage.rows(), Core.NORM_MINMAX);
+        float[] bHistData = new float[(int) (bHist.total() * bHist.channels())];
+        bHist.get(0, 0, bHistData);
+        float[] gHistData = new float[(int) (gHist.total() * gHist.channels())];
+        gHist.get(0, 0, gHistData);
+        float[] rHistData = new float[(int) (rHist.total() * rHist.channels())];
+        rHist.get(0, 0, rHistData);
+        for (int i = 1; i < histSize; i++) {
+            line(histImage, new Point(binW * (i - 1), histH - Math.round(bHistData[i - 1])),
+                    new Point(binW * (i), histH - Math.round(bHistData[i])), new Scalar(255, 0, 0), 2);
+            line(histImage, new Point(binW * (i - 1), histH - Math.round(gHistData[i - 1])),
+                    new Point(binW * (i), histH - Math.round(gHistData[i])), new Scalar(0, 255, 0), 2);
+            line(histImage, new Point(binW * (i - 1), histH - Math.round(rHistData[i - 1])),
+                    new Point(binW * (i), histH - Math.round(rHistData[i])), new Scalar(0, 0, 255), 2);
+        }
+        return histImage;
+    }
+
+    public static Mat plotGrayscaleHist(Mat src) {
+        Mat hist = calcGrayscaleHist(src);
+        int histSize = 256;
+        int histW = 512, histH = 400;
+        int binW = (int) Math.round((double) histW / histSize);
+        Mat histImage = new Mat(histH, histW, CvType.CV_8UC3, new Scalar(0, 0, 0));
+        Core.normalize(hist, hist, 0, histImage.rows(), Core.NORM_MINMAX);
+        float[] histData = new float[(int) (hist.total() * hist.channels())];
+        hist.get(0, 0, histData);
+        for (int i = 1; i < histSize; i++)
+            line(histImage, new Point(binW * (i - 1), histH - Math.round(histData[i - 1])),
+                    new Point(binW * (i), histH - Math.round(histData[i])), new Scalar(255, 255, 255), 2);
+        return histImage;
+    }
+
+    public static Mat calcGrayscaleHist(Mat src) {
+        List<Mat> plane = new ArrayList<>();
+        plane.add(src);
+        int histSize = 256;
+        float[] range = {0, 256}; //the upper boundary is exclusive
+        MatOfFloat histRange = new MatOfFloat(range);
+        Mat hist = new Mat();
+        calcHist(plane, new MatOfInt(0), new Mat(), hist, new MatOfInt(histSize), histRange, false);
+        int histH = 400;
+        Core.normalize(hist, hist, 0, histH, Core.NORM_MINMAX);
+        return hist;
+    }
+
+    public static Mat randomSelect(Mat mat) {
+        int height = mat.height(), width = mat.width();
+        // Remove blank edges.
+        int horizontal = 6, vertical = 8;
+        Mat noEdgeMat = mat.submat(
+                height / vertical,
+                height * (vertical - 1) / vertical,
+                width / horizontal,
+                width * (horizontal - 1) / horizontal);
+        height = noEdgeMat.height();
+        width = noEdgeMat.width();
+        Random randomY = new Random(), randomX = new Random();
+        // upper: height - height / 6 - 1
+        // lower: height / 6
+        int Y = randomY.nextInt(height - height / horizontal - 1 - height / horizontal) + height / horizontal;
+        int X = randomX.nextInt(width - width / vertical - 1 - width / vertical) + width / vertical;
+
+        return noEdgeMat.submat(
+                Y, Y + height / horizontal,
+                X, X + width / vertical
+        );
+    }
+
+    public static Mat smooth(Mat src) {
+        Mat dst = new Mat(src.rows(), src.cols(), src.type());
+        // a(i+1) = tiny*data(i+1) + (1.0-tiny)*a(i)
+        dst.put(0, 0, src.get(0, 0));
+        double tiny = 0.5;
+        for (int i = 1; i < dst.rows(); i++) {
+            double a = dst.get(i - 1, 0)[0];
+            double data = src.get(i, 0)[0];
+            double[] value = new double[]{tiny * data + (1 - tiny) * a, 0, 0, 0};
+            dst.put(i, 0, value);
+        }
+        return dst;
+    }
+
+    public static Mat smoothNTimes(Mat mat, int N) {
+        try {
+            for (int i = 0; i < N; i++)
+                mat = smooth(mat);
+        } catch (ArrayIndexOutOfBoundsException ignored) {
+        }
+        return mat;
+    }
+
+    public static Mat plotSmooth(Mat src) {
+        return plotSmooth(src, 1);
+    }
+
+    public static Mat plotSmooth(Mat src, int N) {
+        Mat hist = smoothNTimes(src, N);
+        int histSize = 256;
+        int histW = 512, histH = 400;
+        int binW = (int) Math.round((double) histW / histSize);
+        Mat histImage = new Mat(histH, histW, CvType.CV_8UC3, new Scalar(0, 0, 0));
+        Core.normalize(hist, hist, -histImage.rows(), histImage.rows(), Core.NORM_MINMAX);
+        float[] histData = new float[(int) (hist.total() * hist.channels())];
+        hist.get(0, 0, histData);
+        for (int i = 1; i < histSize; i++)
+            line(histImage, new Point(binW * (i - 1), histH - Math.round(histData[i - 1])),
+                    new Point(binW * (i), histH - Math.round(histData[i])), new Scalar(255, 255, 255), 2);
+        return histImage;
+    }
+
+    public static double min(Mat mat) {
+        double min = mat.get(0, 0)[0];
+        for (int i = 0; i < mat.height(); i++)
+            for (int j = 0; j < mat.width(); j++)
+                if (mat.get(i, j)[0] < min)
+                    min = mat.get(i, j)[0];
+        return min;
+    }
+
+    public static Mat diff(Mat src) {
+        Mat dst = new Mat(src.rows(), src.cols(), src.type());
+        // Δy(i)=y(i+1)-y(i)
+        for (int i = 0; i < dst.rows() - 1; i++) {
+            double y0 = src.get(i, 0)[0];
+            double y1 = src.get(i + 1, 0)[0];
+            double[] delta = new double[]{y1 - y0,0,0};
+            dst.put(i, 0, delta);
+        }
+        dst.put(dst.rows() - 1, 0, src.get(dst.rows() - 1, 0));
+        return dst;
+    }
+
+    public static Mat plotDiff(Mat src) {
+        Mat hist = diff(src);
+        Scalar min = new Scalar(-min(hist));
+        add(hist, min, hist);
+        int histSize = 256;
+        int histW = 512, histH = 400;
+        int binW = (int) Math.round((double) histW / histSize);
+        Mat histImage = new Mat(histH, histW, CvType.CV_8UC3, new Scalar(0, 0, 0));
+
+        float[] histData = new float[(int) (hist.total() * hist.channels())];
+        hist.get(0, 0, histData);
+        for (int i = 1; i < histSize; i++)
+            line(histImage, new Point(binW * (i - 1), histH - Math.round(histData[i - 1])),
+                    new Point(binW * (i), histH - Math.round(histData[i])), new Scalar(255, 255, 255), 2);
+        return histImage;
+    }
+
     @Override
     public synchronized void run() {
-        Mat original = imread(originalPath);
-        Mat sample = imread(samplePath);
-        bmp = matToBitmap(surf(original, sample));
+        Mat original = imread(originalPath, Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
+        bmp1 = matToBitmap(plotGrayscaleHist(original));
+        bmp2 = matToBitmap(diff(plotDiff(calcGrayscaleHist(original))));
+        Mat mat = diff(calcGrayscaleHist(original));
+        for (int i = 0; i < mat.rows(); i++)
+            Log.i("DIFF", Arrays.toString(mat.get(i, 0)));
     }
 }
