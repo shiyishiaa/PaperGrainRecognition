@@ -15,7 +15,7 @@ public class checkSimilarity extends Thread {
     public synchronized boolean isSimilar() {
         double ruler = initial;
         for (int i = 0; i < checkTimes; i++) {
-            MatchPicture matchPicture = new MatchPicture(file_1, file_2);
+            MatchUtils matchUtils = new MatchUtils(file_1, file_2);
 
 //            if (d < LowerBound)
 //                ruler += errorWeight;

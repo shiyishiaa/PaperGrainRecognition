@@ -48,6 +48,7 @@ import com.grain.grain.Columns;
 import com.grain.grain.FileUtils;
 import com.grain.grain.PaperGrainDBHelper;
 import com.grain.grain.R;
+import com.grain.grain.matching.MatchUtils;
 
 import org.jetbrains.annotations.NotNull;
 import org.opencv.android.BaseLoaderCallback;
@@ -320,8 +321,13 @@ public class recognition extends AppCompatActivity {
         });
         btnOriginalClear = findViewById(R.id.btnOriginalClear);
         btnOriginalClear.setOnClickListener(v -> {
-            imgBtnOriginal.setImageBitmap(null);
-            originalPath = null;
+//            imgBtnOriginal.setImageBitmap(null);
+//            originalPath = null;
+            MatchUtils utils = new MatchUtils(originalPath, samplePath);
+            utils.run();
+
+            //backgroundedToast(utils.value.toString(), Toast.LENGTH_LONG);
+            imgBtnOriginal.setImageBitmap(utils.bmp);
         });
 
         btnSampleChoosePicture = findViewById(R.id.btnSampleChoose);
@@ -625,6 +631,10 @@ public class recognition extends AppCompatActivity {
     }
 
     private void backgroundedToast(@StringRes int msg, @DisplayTime int time) {
+        backgroundedToast(this.getString(msg), time);
+    }
+
+    private void backgroundedToast(String msg, @DisplayTime int time) {
         LayoutInflater inflater = getLayoutInflater();
         View layout = inflater.inflate(R.layout.toast, findViewById(R.id.custom_toast_container));
 
