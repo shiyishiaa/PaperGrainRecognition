@@ -342,10 +342,16 @@ public class recognition extends AppCompatActivity {
 
 
         btnStart = findViewById(R.id.btnStart);
-        btnStart.setOnClickListener(v -> startMatching());
+        btnStart.setOnClickListener(v -> {
+            writeConfig();
+            startMatching();
+        });
 
         btnStop = findViewById(R.id.btnStop);
-        btnStop.setOnClickListener(v -> stopMatching());
+        btnStop.setOnClickListener(v -> {
+            writeConfig();
+            stopMatching();
+        });
 
         imgBtnOriginal = findViewById(R.id.imgBtnOriginal);
         imgBtnOriginal.setOnClickListener(v -> zoomImageFromThumb(imgBtnOriginal, originalPath));

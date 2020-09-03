@@ -39,7 +39,6 @@ import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.grain.grain.Columns;
 import com.grain.grain.PaperGrainDBHelper;
 import com.grain.grain.R;
 
@@ -50,6 +49,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import static com.grain.grain.Columns.COLUMN_NAME_DELETED;
+import static com.grain.grain.Columns.COLUMN_NAME_MATCH_0;
+import static com.grain.grain.Columns.COLUMN_NAME_ORIGINAL;
+import static com.grain.grain.Columns.COLUMN_NAME_SAMPLE;
+import static com.grain.grain.Columns.COLUMN_NAME_TIME_START;
+import static com.grain.grain.Columns.TABLE_NAME;
+import static com.grain.grain.Columns._COUNT;
+import static com.grain.grain.Columns._ID;
 
 public class result extends AppCompatActivity {
     private TextView textHistory, textGroup;
@@ -120,38 +128,41 @@ public class result extends AppCompatActivity {
     }
 
     private void updateImageView() {
-        SQLiteDatabase database = history.getDatabase();
-        String sql = "SELECT " +
-                Columns._COUNT + "," +
-                Columns.COLUMN_NAME_ORIGINAL + "," +
-                Columns.COLUMN_NAME_SAMPLE +
-                " FROM " +
-                Columns.TABLE_NAME +
-                " WHERE " +
-                Columns.COLUMN_NAME_DELETED + "=" + 0;
-        Cursor cursor = database.rawQuery(sql, null);
-        if (cursor.getCount() == 0) {
-            imgBtnOriginal.setImageBitmap(null);
-            imgBtnSample.setImageBitmap(null);
-            imgBtnMatch.setImageBitmap(null);
-            originalPath = samplePath = matchPath = null;
-            return;
+        try {
+            SQLiteDatabase database = history.getDatabase();
+            String sql = "SELECT " +
+                    _COUNT + "," +
+                    COLUMN_NAME_ORIGINAL + "," +
+                    COLUMN_NAME_SAMPLE +
+                    " FROM " +
+                    TABLE_NAME +
+                    " WHERE " +
+                    COLUMN_NAME_DELETED + "=" + 0;
+            Cursor cursor = database.rawQuery(sql, null);
+            if (cursor.getCount() == 0) {
+                imgBtnOriginal.setImageBitmap(null);
+                imgBtnSample.setImageBitmap(null);
+                imgBtnMatch.setImageBitmap(null);
+                originalPath = samplePath = matchPath = null;
+                return;
+            }
+            if (cursor.moveToFirst()) {
+                int position = spinnerHistory.getSelectedItemPosition();
+                int index = 0;
+                do {
+                    if (position == index) {
+                        originalPath = cursor.getString(1);
+                        samplePath = cursor.getString(2);
+                        break;
+                    }
+                    index++;
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+            setImageView(imgBtnOriginal, originalPath);
+            setImageView(imgBtnSample, samplePath);
+        } catch (NullPointerException ignored) {
         }
-        if (cursor.moveToFirst()) {
-            int position = spinnerHistory.getSelectedItemPosition();
-            int index = 0;
-            do {
-                if (position == index) {
-                    originalPath = cursor.getString(1);
-                    samplePath = cursor.getString(2);
-                    break;
-                }
-                index++;
-            } while (cursor.moveToNext());
-        }
-        cursor.close();
-        setImageView(imgBtnOriginal, originalPath);
-        setImageView(imgBtnSample, samplePath);
     }
 
     public void setImageView(final ImageView imageView, String imagePath) {
@@ -422,21 +433,25 @@ public class result extends AppCompatActivity {
 
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                StringBuilder builder = new StringBuilder();
-                builder.append("SELECT ")
-                        .append(Columns.COLUMN_NAME_MATCH_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
-                        .append(" FROM ")
-                        .append(Columns.TABLE_NAME)
-                        .append(" WHERE ")
-                        .append(Columns._COUNT).append("=").append(spinnerHistory.getSelectedItemPosition() + 1);
-                Cursor cursor = history.getDatabase().rawQuery(String.valueOf(builder), null);
-                if (cursor.moveToFirst())
-                    matchPath = cursor.getString(0);
-                cursor.close();
-                if (matchPath != null)
-                    setImageView(imgBtnMatch, matchPath);
-                else
-                    imgBtnMatch.setImageResource(android.R.color.transparent);
+                try {
+                    StringBuilder builder = new StringBuilder();
+                    builder.append("SELECT ")
+                            .append(COLUMN_NAME_MATCH_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
+                            .append(" FROM ")
+                            .append(TABLE_NAME)
+                            .append(" WHERE ")
+                            .append(_COUNT).append("=").append(spinnerHistory.getSelectedItemPosition() + 1);
+                    Cursor cursor = history.getDatabase().rawQuery(String.valueOf(builder), null);
+                    if (cursor.moveToFirst())
+                        matchPath = cursor.getString(0);
+                    cursor.close();
+                    if (matchPath != null)
+                        setImageView(imgBtnMatch, matchPath);
+                    else
+                        imgBtnMatch.setImageResource(android.R.color.transparent);
+                } catch (NullPointerException ignored) {
+
+                }
             }
 
             @Override
@@ -510,15 +525,15 @@ public class result extends AppCompatActivity {
         History(Context context, SQLiteDatabase database) {
             try {
                 String sql = "SELECT " +
-                        Columns._ID + "," +
-                        Columns._COUNT + "," +
-                        Columns.COLUMN_NAME_TIME_START +
+                        _ID + "," +
+                        _COUNT + "," +
+                        COLUMN_NAME_TIME_START +
                         " FROM " +
-                        Columns.TABLE_NAME +
+                        TABLE_NAME +
                         " WHERE " +
-                        Columns.COLUMN_NAME_DELETED + "=" + 0 +
+                        COLUMN_NAME_DELETED + "=" + 0 +
                         " ORDER BY " +
-                        Columns._COUNT;
+                        _COUNT;
                 Cursor cursor = database.rawQuery(sql, null);
                 this.context = context;
                 this.size = cursor.getCount();
@@ -534,7 +549,7 @@ public class result extends AppCompatActivity {
                         context,
                         R.layout.spinner,
                         cursor,
-                        new String[]{Columns._COUNT, Columns.COLUMN_NAME_TIME_START},
+                        new String[]{_COUNT, COLUMN_NAME_TIME_START},
                         new int[]{R.id.textCount, R.id.textTime},
                         0);
                 this.database = database;
@@ -578,28 +593,28 @@ public class result extends AppCompatActivity {
 
         public CursorAdapter delete(int position) {
             String delete = "UPDATE " +
-                    Columns.TABLE_NAME +
-                    " SET " + Columns.COLUMN_NAME_DELETED + "=" + 1 +
-                    " WHERE " + Columns._COUNT + "=" + (position + 1);
+                    TABLE_NAME +
+                    " SET " + COLUMN_NAME_DELETED + "=" + 1 +
+                    " WHERE " + _COUNT + "=" + (position + 1);
             database.execSQL(delete);
             updateOrderAfterDelete();
             String sql = "SELECT " +
-                    Columns._ID + "," +
-                    Columns._COUNT + "," +
-                    Columns.COLUMN_NAME_TIME_START +
+                    _ID + "," +
+                    _COUNT + "," +
+                    COLUMN_NAME_TIME_START +
                     " FROM " +
-                    Columns.TABLE_NAME +
+                    TABLE_NAME +
                     " WHERE " +
-                    Columns.COLUMN_NAME_DELETED + "=" + 0 +
+                    COLUMN_NAME_DELETED + "=" + 0 +
                     " ORDER BY " +
-                    Columns._COUNT;
+                    _COUNT;
             Cursor cursor = database.rawQuery(sql, null);
             backgroundedToast(R.string.textDeleteSucceeded, Toast.LENGTH_SHORT);
             adapter = new SimpleCursorAdapter(
                     context,
                     R.layout.spinner,
                     cursor,
-                    new String[]{Columns._COUNT, Columns.COLUMN_NAME_TIME_START},
+                    new String[]{_COUNT, COLUMN_NAME_TIME_START},
                     new int[]{R.id.textCount, R.id.textTime},
                     0);
             if (cursor.getCount() == 0) {
