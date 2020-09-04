@@ -3,6 +3,7 @@ package com.grain.grain.matching;
 import android.graphics.Bitmap;
 import android.util.Log;
 
+import org.jetbrains.annotations.NotNull;
 import org.opencv.android.Utils;
 import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Core;
@@ -18,11 +19,13 @@ import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.Features2d;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 import org.opencv.xfeatures2d.SURF;
 
 import java.util.ArrayList;
@@ -42,15 +45,33 @@ import static org.opencv.imgproc.Imgproc.GaussianBlur;
 import static org.opencv.imgproc.Imgproc.calcHist;
 import static org.opencv.imgproc.Imgproc.cvtColor;
 import static org.opencv.imgproc.Imgproc.line;
+import static org.opencv.imgproc.Imgproc.threshold;
 
 public class MatchUtils implements Runnable {
     public Bitmap bmp1, bmp2;
     public Double value;
-    private String originalPath, samplePath;
+    private Mat original, sample;
 
-    public MatchUtils(String Original, String Sample) {
-        this.originalPath = Original;
-        this.samplePath = Sample;
+    public MatchUtils(String _original, String _sample) {
+        original = imread(_original, Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
+        sample = imread(_sample, Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
+    }
+
+    private static double getThreshold(Mat src) {
+        List<Scalar> maximum = maximum(src);
+
+        if (maximum.size() < 2) return -1;
+
+        double firstX = 0, secondX = 0;
+        double firstY = 0, secondY = 0;
+        for (Scalar s : maximum) {
+            double nowValue = src.get((int) s.val[0], 0)[0];
+            if (nowValue > firstY)
+                firstX = s.val[0];
+            else if (nowValue > secondY)
+                secondX = s.val[0];
+        }
+        return Math.max(firstX, secondX) - Math.abs(firstX - secondX) / 3;
     }
 
     public static Scalar getMSSIM(Mat image1, Mat image2) {
@@ -264,27 +285,52 @@ public class MatchUtils implements Runnable {
         return hist;
     }
 
-    public static Mat randomSelect(Mat mat) {
+    public static Mat randomSubmat(Mat mat) {
+        return randomSubmat(new Mat[]{mat})[0];
+    }
+
+    public static Mat[] randomSubmat(@NotNull Mat[] mats) {
+        Mat[] regions = new Mat[mats.length];
+        Rect rect = randomRect(mats[0]);
+        int horizontal = (int) mats[0].width() / 1000, vertical = (int) mats[0].height() / 1000;
+        for (int i = 0; i < mats.length; i++) {
+            Mat noEdgeMat = removeEdge(mats[i], horizontal, vertical);
+            regions[i] = noEdgeMat.submat(rect);
+        }
+        return regions;
+    }
+
+    private static Rect randomRect(@NotNull Mat mat) {
+        int horizontal = (int) mat.width() / 1000, vertical = (int) mat.height() / 1000;
+        Mat noEdgeMat = removeEdge(mat, horizontal, vertical);
+
+        int height = noEdgeMat.height();
+        int width = noEdgeMat.width();
+
+        int Y = randomInt(0, height - mat.height() / 10);
+        int X = randomInt(0, width - mat.width() / 10);
+
+        return new Rect(X, Y, mat.width() / 10, mat.height() / 10);
+    }
+
+    /**
+     * Generating integer between [min, max].
+     *
+     * @param min min integer
+     * @param max max integer
+     */
+    public static int randomInt(int min, int max) {
+        return new Random().nextInt(max) % (max - min + 1) + min;
+    }
+
+    private static Mat removeEdge(Mat mat, int horizontal, int vertical) {
         int height = mat.height(), width = mat.width();
         // Remove blank edges.
-        int horizontal = 6, vertical = 8;
-        Mat noEdgeMat = mat.submat(
+        return mat.submat(
                 height / vertical,
                 height * (vertical - 1) / vertical,
                 width / horizontal,
                 width * (horizontal - 1) / horizontal);
-        height = noEdgeMat.height();
-        width = noEdgeMat.width();
-        Random randomY = new Random(), randomX = new Random();
-        // upper: height - height / 6 - 1
-        // lower: height / 6
-        int Y = randomY.nextInt(height - height / horizontal - 1 - height / horizontal) + height / horizontal;
-        int X = randomX.nextInt(width - width / vertical - 1 - width / vertical) + width / vertical;
-
-        return noEdgeMat.submat(
-                Y, Y + height / horizontal,
-                X, X + width / vertical
-        );
     }
 
     public static Mat smooth(Mat src) {
@@ -329,7 +375,7 @@ public class MatchUtils implements Runnable {
         return histImage;
     }
 
-    public static double min(Mat mat) {
+    public static double minValue(Mat mat) {
         double min = mat.get(0, 0)[0];
         for (int i = 0; i < mat.height(); i++)
             for (int j = 0; j < mat.width(); j++)
@@ -338,13 +384,19 @@ public class MatchUtils implements Runnable {
         return min;
     }
 
+    public static double maxValue(Mat mat) {
+        Mat minusMat = new Mat();
+        multiply(mat, new Scalar(-1), minusMat);
+        return -minValue(minusMat);
+    }
+
     public static Mat diff(Mat src) {
         Mat dst = new Mat(src.rows(), src.cols(), src.type());
         // Δy(i)=y(i+1)-y(i)
         for (int i = 0; i < dst.rows() - 1; i++) {
             double y0 = src.get(i, 0)[0];
             double y1 = src.get(i + 1, 0)[0];
-            double[] delta = new double[]{y1 - y0,0,0};
+            double[] delta = new double[]{y1 - y0, 0, 0};
             dst.put(i, 0, delta);
         }
         dst.put(dst.rows() - 1, 0, src.get(dst.rows() - 1, 0));
@@ -353,10 +405,12 @@ public class MatchUtils implements Runnable {
 
     public static Mat plotDiff(Mat src) {
         Mat hist = diff(src);
-        Scalar min = new Scalar(-min(hist));
-        add(hist, min, hist);
+        Scalar minValue = new Scalar(-minValue(hist));
+
         int histSize = 256;
         int histW = 512, histH = 400;
+
+        add(hist, new Scalar(histH / 2.0), hist);
         int binW = (int) Math.round((double) histW / histSize);
         Mat histImage = new Mat(histH, histW, CvType.CV_8UC3, new Scalar(0, 0, 0));
 
@@ -368,13 +422,78 @@ public class MatchUtils implements Runnable {
         return histImage;
     }
 
+    public static List<Scalar> zeroPoints(Mat src) {
+        List<Scalar> points = new ArrayList<>();
+        // if y(i)*y(i+1)<0, there lies a zero points;
+        for (int i = 0; i < src.rows() - 1; i++) {
+            double y0 = src.get(i, 0)[0];
+            double y1 = src.get(i + 1, 0)[0];
+            if (y0 * y1 < 0)
+                points.add(new Scalar(i));
+        }
+        return points;
+    }
+
+    /**
+     * Get all maximum points.
+     *
+     * @param src line
+     * @return maximum points
+     */
+    public static List<Scalar> maximum(Mat src) {
+        List<Scalar> zeroPoints = zeroPoints(src);
+        List<Scalar> maximum = new ArrayList<>();
+        for (Scalar s : zeroPoints) {
+            if (src.get((int) s.val[0], 0)[0] > 0)
+                maximum.add(s);
+        }
+        return maximum;
+    }
+
+    private static void printMat(Mat mat) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("\n");
+        for (int i = 0; i < mat.height(); i++) {
+            for (int j = 0; j < mat.width(); j++) {
+                stringBuilder.append(Arrays.toString(mat.get(i, j)))
+                        .append("\t");
+            }
+            stringBuilder.append("\n");
+        }
+        Log.i("Mat", String.valueOf(stringBuilder));
+    }
+
+    public static double whitePercent(Mat mat) {
+        double count = 0, sum = mat.cols() * mat.rows();
+        for (int i = 0; i < mat.height(); i++) {
+            for (int j = 0; j < mat.width(); j++) {
+                if (mat.get(i, j)[0] == 255)
+                    count++;
+            }
+        }
+        return count / sum;
+    }
+
     @Override
     public synchronized void run() {
-        Mat original = imread(originalPath, Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
-        bmp1 = matToBitmap(plotGrayscaleHist(original));
-        bmp2 = matToBitmap(diff(plotDiff(calcGrayscaleHist(original))));
-        Mat mat = diff(calcGrayscaleHist(original));
-        for (int i = 0; i < mat.rows(); i++)
-            Log.i("DIFF", Arrays.toString(mat.get(i, 0)));
+        match();
+    }
+
+    private void match() {
+        Mat[] mats = new Mat[]{original, sample};
+        Mat[] regions;
+        double threshold;
+        Mat dst = new Mat();
+        do {
+            do {
+                regions = randomSubmat(mats);
+                bmp1 = matToBitmap(regions[0]);
+                threshold = getThreshold(diff(calcGrayscaleHist(regions[0])));
+            } while (threshold == -1);
+
+            threshold(regions[0], dst, threshold, 255, Imgproc.THRESH_BINARY);
+        } while (whitePercent(dst) >= 0.97);
+        printMat(dst);
+        bmp2 = matToBitmap(dst);
     }
 }
