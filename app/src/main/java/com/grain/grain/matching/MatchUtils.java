@@ -48,7 +48,7 @@ import static org.opencv.imgproc.Imgproc.line;
 import static org.opencv.imgproc.Imgproc.threshold;
 
 public class MatchUtils implements Runnable {
-    public Bitmap bmp1, bmp2;
+    public Bitmap bmp1, bmp2, temp;
     public Double value;
     private Mat original, sample;
 
@@ -441,7 +441,8 @@ public class MatchUtils implements Runnable {
      * @return maximum points
      */
     public static List<Scalar> maximum(Mat src) {
-        List<Scalar> zeroPoints = zeroPoints(src);
+        Mat diff = diff(src);
+        List<Scalar> zeroPoints = zeroPoints(diff);
         List<Scalar> maximum = new ArrayList<>();
         for (Scalar s : zeroPoints) {
             if (src.get((int) s.val[0], 0)[0] > 0)
@@ -483,17 +484,19 @@ public class MatchUtils implements Runnable {
         Mat[] mats = new Mat[]{original, sample};
         Mat[] regions;
         double threshold;
-        Mat dst = new Mat();
+        Mat[] binary = new Mat[]{new Mat(), new Mat()};
         do {
             do {
                 regions = randomSubmat(mats);
                 bmp1 = matToBitmap(regions[0]);
-                threshold = getThreshold(diff(calcGrayscaleHist(regions[0])));
+                threshold = getThreshold(smooth(calcGrayscaleHist(regions[0])));
             } while (threshold == -1);
-
-            threshold(regions[0], dst, threshold, 255, Imgproc.THRESH_BINARY);
-        } while (whitePercent(dst) >= 0.97);
-        printMat(dst);
-        bmp2 = matToBitmap(dst);
+            threshold(regions[0], binary[0], threshold, 255, Imgproc.THRESH_BINARY);
+            threshold(regions[1], binary[1], threshold, 255, Imgproc.THRESH_BINARY);
+        } while (whitePercent(binary[0]) >= 0.97 || whitePercent(binary[1]) >= 0.97);
+        bmp1 = matToBitmap(binary[0]);
+        bmp2 = matToBitmap(binary[1]);
+        temp = matToBitmap(surf(binary[0], binary[1]));
+        value = getMSSIM(binary[0], binary[1]).val[0];
     }
 }
