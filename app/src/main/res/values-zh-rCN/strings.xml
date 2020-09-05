@@ -60,4 +60,6 @@
     <string name="descSample">样本</string>
     <string name="descOriginal">原图</string>
     <string name="description_zoom_touch_close">触摸关闭</string>
+    <string name="textWrongPicture">图片尺寸不匹配！</string>
+    <string name="textProcessing">图片处理中！</string>
 </resources>

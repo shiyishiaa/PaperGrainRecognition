@@ -47,9 +47,9 @@ import static org.opencv.imgproc.Imgproc.cvtColor;
 import static org.opencv.imgproc.Imgproc.line;
 import static org.opencv.imgproc.Imgproc.threshold;
 
-public class MatchUtils implements Runnable {
-    public Bitmap bmp1, bmp2, surf;
-    public Double ssim;
+public class MatchUtils extends Thread {
+    public Bitmap originalBMP, sampleBMP, surfBMP;
+    public Double ssimValue;
     private Mat original, sample;
 
     public MatchUtils(String _original, String _sample) {
@@ -57,7 +57,7 @@ public class MatchUtils implements Runnable {
         sample = imread(_sample, Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
     }
 
-    private static double getThreshold(Mat src) {
+    private static double autoGetThreshold(Mat src) {
         List<Scalar> maximum = maximum(src);
 
         if (maximum.size() < 2) return -1;
@@ -483,20 +483,20 @@ public class MatchUtils implements Runnable {
     private void match() {
         Mat[] mats = new Mat[]{original, sample};
         Mat[] regions;
-        double threshold;
+        double threshold0, threshold1;
         Mat[] binary = new Mat[]{new Mat(), new Mat()};
         do {
             do {
                 regions = randomSubmat(mats);
-                bmp1 = matToBitmap(regions[0]);
-                threshold = getThreshold(smoothNTimes(calcGrayscaleHist(regions[0]), 3));
-            } while (threshold == -1);
-            threshold(regions[0], binary[0], threshold, 255, Imgproc.THRESH_BINARY);
-            threshold(regions[1], binary[1], threshold, 255, Imgproc.THRESH_BINARY);
+                threshold0 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[0]), 3));
+                threshold1 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[1]), 3));
+            } while (threshold0 == -1 || threshold1 == 1);
+            threshold(regions[0], binary[0], threshold0, 255, Imgproc.THRESH_BINARY);
+            threshold(regions[1], binary[1], threshold1, 255, Imgproc.THRESH_BINARY);
         } while (whitePercent(binary[0]) >= 0.97 || whitePercent(binary[1]) >= 0.97);
-        bmp1 = matToBitmap(binary[0]);
-        bmp2 = matToBitmap(binary[1]);
-        surf = matToBitmap(surf(binary[0], binary[1]));
-        ssim = getMSSIM(binary[0], binary[1]).val[0];
+        originalBMP = matToBitmap(binary[0]);
+        sampleBMP = matToBitmap(binary[1]);
+        surfBMP = matToBitmap(surf(binary[0], binary[1]));
+        ssimValue = getMSSIM(binary[0], binary[1]).val[0];
     }
 }

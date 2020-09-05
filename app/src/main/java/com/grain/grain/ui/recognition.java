@@ -75,6 +75,7 @@ public class recognition extends AppCompatActivity {
             PERMISSION_CAMERA = 0xFF00,
             PERMISSION_WRITE_EXTERNAL_STORAGE = 0xFF01,
             PERMISSION_READ_EXTERNAL_STORAGE = 0xFF02;
+    private MatchUtils[] utils = new MatchUtils[10];
     private SharedPreferences Config;
     // Storage path
     private String originalPath, samplePath;
@@ -321,15 +322,8 @@ public class recognition extends AppCompatActivity {
         });
         btnOriginalClear = findViewById(R.id.btnOriginalClear);
         btnOriginalClear.setOnClickListener(v -> {
-//            imgBtnOriginal.setImageBitmap(null);
-//            originalPath = null;
-            MatchUtils utils = new MatchUtils(originalPath, samplePath);
-            utils.run();
-
-            //backgroundedToast(utils.value.toString(), Toast.LENGTH_LONG);
-            imgBtnOriginal.setImageBitmap(utils.bmp1);
-            imgBtnSample.setImageBitmap(utils.surf);
-            backgroundedToast(utils.ssim.toString(), Toast.LENGTH_LONG);
+            imgBtnOriginal.setImageBitmap(null);
+            originalPath = null;
         });
 
         btnSampleChoosePicture = findViewById(R.id.btnSampleChoose);
@@ -351,8 +345,14 @@ public class recognition extends AppCompatActivity {
 
         btnStart = findViewById(R.id.btnStart);
         btnStart.setOnClickListener(v -> {
-            if (imgBtnSample.getDrawable() == null || imgBtnOriginal.getDrawable() == null)
+            if (originalPath == null || samplePath == null) {
                 backgroundedToast(R.string.textNullImage, Toast.LENGTH_SHORT);
+                return;
+            }
+            if (!imgBtnOriginal.getDrawable().getBounds().equals(imgBtnSample.getDrawable().getBounds())) {
+                backgroundedToast(R.string.textWrongPicture, Toast.LENGTH_LONG);
+                return;
+            }
             writeConfig();
             startMatching();
         });
@@ -360,7 +360,7 @@ public class recognition extends AppCompatActivity {
         btnStop = findViewById(R.id.btnStop);
         btnStop.setOnClickListener(v -> {
             if (imgBtnSample.getDrawable() == null || imgBtnOriginal.getDrawable() == null)
-                backgroundedToast(R.string.textNullImage, Toast.LENGTH_SHORT);
+                return;
             writeConfig();
             stopMatching();
         });
@@ -568,10 +568,22 @@ public class recognition extends AppCompatActivity {
     }
 
     private void startMatching() {
-        if (originalPath == null || samplePath == null) {
-            backgroundedToast(R.string.textNullImage, Toast.LENGTH_SHORT);
+        for (int i = 0; i < utils.length; i++) {
+            utils[i] = new MatchUtils(originalPath, samplePath);
+        }
+
+        int processing = 0;
+        for (MatchUtils util : utils) {
+            if (util.getState() == Thread.State.RUNNABLE)
+                processing++;
+            else
+                util.start();
+        }
+        if (processing == utils.length) {
+            backgroundedToast(R.string.textProcessing, Toast.LENGTH_SHORT);
             return;
         }
+
         backgroundedToast(R.string.textStartMatching, Toast.LENGTH_SHORT);
         PaperGrainDBHelper helper = new PaperGrainDBHelper(this);
         SQLiteDatabase write = helper.getWrite();

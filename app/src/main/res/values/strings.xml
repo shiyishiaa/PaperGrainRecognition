@@ -62,4 +62,6 @@
     <string name="descSample">Sample</string>
     <string name="descOriginal">Original</string>
     <string name="description_zoom_touch_close">Touch to close</string>
+    <string name="textWrongPicture">Pictures sizes unmatch!</string>
+    <string name="textProcessing">Pictures Processing!</string>
 </resources>
