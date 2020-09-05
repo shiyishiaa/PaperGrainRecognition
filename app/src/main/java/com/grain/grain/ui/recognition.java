@@ -328,8 +328,8 @@ public class recognition extends AppCompatActivity {
 
             //backgroundedToast(utils.value.toString(), Toast.LENGTH_LONG);
             imgBtnOriginal.setImageBitmap(utils.bmp1);
-            imgBtnSample.setImageBitmap(utils.temp);
-            backgroundedToast(utils.value.toString(), Toast.LENGTH_LONG);
+            imgBtnSample.setImageBitmap(utils.surf);
+            backgroundedToast(utils.ssim.toString(), Toast.LENGTH_LONG);
         });
 
         btnSampleChoosePicture = findViewById(R.id.btnSampleChoose);

@@ -62,6 +62,7 @@ import static com.grain.grain.Columns._ID;
 public class result extends AppCompatActivity {
     private TextView textHistory, textGroup;
     private TextView textSSIM, textValue, textMatchResult, textResult;
+    private TextView labelOriginalPicture, labelSamplePicture;
     private ImageButton imgBtnOriginal, imgBtnSample, imgBtnMatch;
     private ImageButton menuBtnBrightness, menuBtnRecognition, menuBtnResult;
     private Spinner spinnerHistory, spinnerGroup;
@@ -79,6 +80,11 @@ public class result extends AppCompatActivity {
     private int shortAnimationDuration;
     private boolean mBackKeyPressed = false;
     private SharedPreferences Config;
+
+    private static String fileName(String path) {
+        String[] split = path.split("/");
+        return split[split.length - 1];
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -159,6 +165,13 @@ public class result extends AppCompatActivity {
                 } while (cursor.moveToNext());
             }
             cursor.close();
+
+            String originalName = "Original(" + fileName(originalPath) + ")";
+            String sampleName = "Sample(" + fileName(originalPath) + ")";
+
+            labelOriginalPicture.setText(originalName);
+            labelSamplePicture.setText(sampleName);
+
             setImageView(imgBtnOriginal, originalPath);
             setImageView(imgBtnSample, samplePath);
         } catch (NullPointerException ignored) {
@@ -237,6 +250,9 @@ public class result extends AppCompatActivity {
         textValue = findViewById(R.id.textValue);
         textMatchResult = findViewById(R.id.textMatchResult);
         textResult = findViewById(R.id.textResult);
+
+        labelOriginalPicture = findViewById(R.id.labelOriginalPicture);
+        labelSamplePicture = findViewById(R.id.labelSamplePicture);
 
         imgBtnOriginal = findViewById(R.id.imgBtnOriginal);
         imgBtnOriginal.setOnClickListener(v -> zoomImageFromThumb(imgBtnOriginal, originalPath));
@@ -619,6 +635,10 @@ public class result extends AppCompatActivity {
                     0);
             if (cursor.getCount() == 0) {
                 backgroundedToast(R.string.textEmptyDatabase, Toast.LENGTH_SHORT);
+
+                labelOriginalPicture.setText(R.string.labelOriginal);
+                labelSamplePicture.setText(R.string.labelSample);
+
                 spinnerHistory.setEnabled(false);
                 spinnerGroup.setEnabled(false);
             }

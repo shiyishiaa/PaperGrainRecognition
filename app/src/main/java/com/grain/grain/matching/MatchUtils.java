@@ -48,8 +48,8 @@ import static org.opencv.imgproc.Imgproc.line;
 import static org.opencv.imgproc.Imgproc.threshold;
 
 public class MatchUtils implements Runnable {
-    public Bitmap bmp1, bmp2, temp;
-    public Double value;
+    public Bitmap bmp1, bmp2, surf;
+    public Double ssim;
     private Mat original, sample;
 
     public MatchUtils(String _original, String _sample) {
@@ -361,18 +361,18 @@ public class MatchUtils implements Runnable {
     }
 
     public static Mat plotSmooth(Mat src, int N) {
-        Mat hist = smoothNTimes(src, N);
-        int histSize = 256;
-        int histW = 512, histH = 400;
-        int binW = (int) Math.round((double) histW / histSize);
-        Mat histImage = new Mat(histH, histW, CvType.CV_8UC3, new Scalar(0, 0, 0));
-        Core.normalize(hist, hist, -histImage.rows(), histImage.rows(), Core.NORM_MINMAX);
-        float[] histData = new float[(int) (hist.total() * hist.channels())];
-        hist.get(0, 0, histData);
-        for (int i = 1; i < histSize; i++)
-            line(histImage, new Point(binW * (i - 1), histH - Math.round(histData[i - 1])),
-                    new Point(binW * (i), histH - Math.round(histData[i])), new Scalar(255, 255, 255), 2);
-        return histImage;
+        Mat smooth = smoothNTimes(src, N);
+        int size = src.rows();
+        int plotW = 512, plotH = 400;
+        int binW = (int) Math.round((double) plotW / size);
+        Mat smoothImage = new Mat(plotH, plotW, CvType.CV_8UC3, new Scalar(0, 0, 0));
+        Core.normalize(smooth, smooth, -smoothImage.rows(), smoothImage.rows(), Core.NORM_MINMAX);
+        float[] smoothData = new float[(int) (smooth.total() * smooth.channels())];
+        smooth.get(0, 0, smoothData);
+        for (int i = 1; i < size; i++)
+            line(smoothImage, new Point(binW * (i - 1), plotH - Math.round(smoothData[i - 1])),
+                    new Point(binW * (i), plotH - Math.round(smoothData[i])), new Scalar(255, 255, 255), 2);
+        return smoothImage;
     }
 
     public static double minValue(Mat mat) {
@@ -404,22 +404,22 @@ public class MatchUtils implements Runnable {
     }
 
     public static Mat plotDiff(Mat src) {
-        Mat hist = diff(src);
-        Scalar minValue = new Scalar(-minValue(hist));
+        Mat diff = diff(src);
+        Scalar minValue = new Scalar(-minValue(diff));
 
-        int histSize = 256;
-        int histW = 512, histH = 400;
+        int size = src.rows();
+        int plotW = 512, plotH = 400;
 
-        add(hist, new Scalar(histH / 2.0), hist);
-        int binW = (int) Math.round((double) histW / histSize);
-        Mat histImage = new Mat(histH, histW, CvType.CV_8UC3, new Scalar(0, 0, 0));
+        add(diff, new Scalar(plotH / 2.0), diff);
+        int binW = (int) Math.round((double) plotW / size);
+        Mat diffImage = new Mat(plotH, plotW, CvType.CV_8UC3, new Scalar(0, 0, 0));
 
-        float[] histData = new float[(int) (hist.total() * hist.channels())];
-        hist.get(0, 0, histData);
-        for (int i = 1; i < histSize; i++)
-            line(histImage, new Point(binW * (i - 1), histH - Math.round(histData[i - 1])),
-                    new Point(binW * (i), histH - Math.round(histData[i])), new Scalar(255, 255, 255), 2);
-        return histImage;
+        float[] diffData = new float[(int) (diff.total() * diff.channels())];
+        diff.get(0, 0, diffData);
+        for (int i = 1; i < size; i++)
+            line(diffImage, new Point(binW * (i - 1), plotH - Math.round(diffData[i - 1])),
+                    new Point(binW * (i), plotH - Math.round(diffData[i])), new Scalar(255, 255, 255), 2);
+        return diffImage;
     }
 
     public static List<Scalar> zeroPoints(Mat src) {
@@ -489,14 +489,14 @@ public class MatchUtils implements Runnable {
             do {
                 regions = randomSubmat(mats);
                 bmp1 = matToBitmap(regions[0]);
-                threshold = getThreshold(smooth(calcGrayscaleHist(regions[0])));
+                threshold = getThreshold(smoothNTimes(calcGrayscaleHist(regions[0]), 3));
             } while (threshold == -1);
             threshold(regions[0], binary[0], threshold, 255, Imgproc.THRESH_BINARY);
             threshold(regions[1], binary[1], threshold, 255, Imgproc.THRESH_BINARY);
         } while (whitePercent(binary[0]) >= 0.97 || whitePercent(binary[1]) >= 0.97);
         bmp1 = matToBitmap(binary[0]);
         bmp2 = matToBitmap(binary[1]);
-        temp = matToBitmap(surf(binary[0], binary[1]));
-        value = getMSSIM(binary[0], binary[1]).val[0];
+        surf = matToBitmap(surf(binary[0], binary[1]));
+        ssim = getMSSIM(binary[0], binary[1]).val[0];
     }
 }
