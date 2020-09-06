@@ -115,6 +115,7 @@ public class recognition extends AppCompatActivity {
     // xEnd stores the location where swipe gesture ends.
     @SuppressWarnings("FieldCanBeLocal")
     private float xEnd = 0;
+    private long start = 0, end = 0;
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
@@ -134,10 +135,15 @@ public class recognition extends AppCompatActivity {
                 return false;
             case START_MATCHING:
                 autoCheckMatchingStatus();
+                start = Calendar.getInstance().getTimeInMillis();
                 return true;
             case STOP_MATCHING:
             case MATCHING_FINISHED:
                 backgroundedToast(R.string.textProcessDone, Toast.LENGTH_SHORT);
+                end = Calendar.getInstance().getTimeInMillis();
+                for (MatchUtils util : utils)
+                    Log.i("State", String.valueOf(util.ssimValue));
+                Log.i("Time Spent", String.valueOf(Math.abs(start - end)) + " ms");
                 return true;
         }
     });
