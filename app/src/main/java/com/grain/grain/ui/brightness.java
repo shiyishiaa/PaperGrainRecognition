@@ -28,6 +28,7 @@ import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
 
 import com.grain.grain.R;
 
@@ -48,31 +49,31 @@ import java.util.UUID;
 
 public class brightness extends AppCompatActivity {
     // Various widgets.
-    Switch switchBluetooth;
-    TextView textBluetoothStatus, textBluetoothIsOpen;
-    TextView textBrightness, textBrightnessPercentage;
-    TextView textPairingStatus, textBluetoothIsPairing;
-    SeekBar seekBarAdjustBrightness;
-    LinearLayout BluetoothFunctionLayout;
+    private SwitchCompat switchBluetooth;
+    private TextView textBluetoothStatus, textBluetoothIsOpen;
+    private TextView textBrightness, textBrightnessPercentage;
+    private TextView textPairingStatus, textBluetoothIsPairing;
+    private SeekBar seekBarAdjustBrightness;
+    private LinearLayout BluetoothFunctionLayout;
     // Bottom menu bar.
-    ImageButton imBtnBrightness, imBtnRecognition, imBtnResult;
-    LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout;
+    private ImageButton imBtnBrightness, imBtnRecognition, imBtnResult;
+    private LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout;
     // The bluetooth object.
-    UUID defaultUuid;
-    BluetoothAdapter bluetoothAdapter;
-    BluetoothDevice bluetoothDevice;
-    BluetoothSocket bluetoothSocket;
-    OutputStream outputStream;
-    InputStream inputStream;
+    private UUID defaultUuid;
+    private BluetoothAdapter bluetoothAdapter;
+    private BluetoothDevice bluetoothDevice;
+    private BluetoothSocket bluetoothSocket;
+    private OutputStream outputStream;
+    private InputStream inputStream;
     // The handlers for auto check program.
-    Handler bluetoothStatusHandler, pairingStatusHandler;
+    private Handler bluetoothStatusHandler, pairingStatusHandler;
     // The OnOnCheckedChangeListener of the switchBluetooth.
-    Switch.OnCheckedChangeListener mOnOnCheckedChangeListener = (compoundButton, b) -> {
+    private Switch.OnCheckedChangeListener mOnOnCheckedChangeListener = (compoundButton, b) -> {
         switchBluetooth.setEnabled(false);
         new ThreadToggleBluetooth(bluetoothAdapter).start();
     };
     // The OnSeekBarChangeListener of the seekBarAdjustBrightness.
-    SeekBar.OnSeekBarChangeListener mOnSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
+    private SeekBar.OnSeekBarChangeListener mOnSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
         @Override
         public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
             textBrightnessPercentage.setText(String.valueOf(i));

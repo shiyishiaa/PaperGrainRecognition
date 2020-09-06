@@ -172,8 +172,8 @@ public class result extends AppCompatActivity {
             labelOriginalPicture.setText(originalName);
             labelSamplePicture.setText(sampleName);
 
-            setImageView(imgBtnOriginal, originalPath);
-            setImageView(imgBtnSample, samplePath);
+            runOnUiThread(() -> setImageView(imgBtnOriginal, originalPath));
+            runOnUiThread(() -> setImageView(imgBtnSample, samplePath));
         } catch (NullPointerException ignored) {
         }
     }
@@ -282,6 +282,7 @@ public class result extends AppCompatActivity {
                         SQLiteDatabase.deleteDatabase(getDatabasePath(PaperGrainDBHelper.DATABASE_NAME));
                         spinnerHistory.setEnabled(false);
                         spinnerHistory.setAdapter(new SimpleCursorAdapter(result.this, R.layout.spinner, null, null, null, 0));
+                        updateImageView();
                     })
                     .setNegativeButton(R.string.textCancel, (dialog, which) -> dialog.dismiss())
                     .show();
@@ -462,7 +463,7 @@ public class result extends AppCompatActivity {
                         matchPath = cursor.getString(0);
                     cursor.close();
                     if (matchPath != null)
-                        setImageView(imgBtnMatch, matchPath);
+                        runOnUiThread(() -> setImageView(imgBtnMatch, matchPath));
                     else
                         imgBtnMatch.setImageResource(android.R.color.transparent);
                 } catch (NullPointerException ignored) {

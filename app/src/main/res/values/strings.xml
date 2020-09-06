@@ -64,4 +64,5 @@
     <string name="description_zoom_touch_close">Touch to close</string>
     <string name="textWrongPicture">Pictures sizes unmatch!</string>
     <string name="textProcessing">Pictures Processing!</string>
+    <string name="textProcessDone">Process is done!</string>
 </resources>

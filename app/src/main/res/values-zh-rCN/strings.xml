@@ -62,4 +62,5 @@
     <string name="description_zoom_touch_close">触摸关闭</string>
     <string name="textWrongPicture">图片尺寸不匹配！</string>
     <string name="textProcessing">图片处理中！</string>
+    <string name="textProcessDone">处理完成！</string>
 </resources>

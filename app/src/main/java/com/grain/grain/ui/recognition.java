@@ -21,6 +21,8 @@ import android.icu.util.Calendar;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Display;
@@ -62,6 +64,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class recognition extends AppCompatActivity {
     // Request codes
@@ -75,6 +80,25 @@ public class recognition extends AppCompatActivity {
             PERMISSION_CAMERA = 0xFF00,
             PERMISSION_WRITE_EXTERNAL_STORAGE = 0xFF01,
             PERMISSION_READ_EXTERNAL_STORAGE = 0xFF02;
+    // Path change codes
+    private static final int
+            INITIAL_MATCH = 0xCC00,
+            ORIGINAL_CHANGED = 0xCC01,
+            SAMPLE_CHANGED = 0xCC02;
+    // Match codes
+    private static final int
+            START_MATCHING = 0xDD00,
+            STOP_MATCHING = 0xDD01,
+            MATCHING_FINISHED = 0xDD02,
+            MATCHING_ABORTED = STOP_MATCHING;
+    private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors();
+    private static final ThreadPoolExecutor executor = new ThreadPoolExecutor(
+            NUMBER_OF_CORES + 1,
+            2 * NUMBER_OF_CORES,
+            5,
+            TimeUnit.MINUTES,
+            new ArrayBlockingQueue<>(10),
+            new ThreadPoolExecutor.DiscardOldestPolicy());
     private MatchUtils[] utils = new MatchUtils[10];
     private SharedPreferences Config;
     // Storage path
@@ -104,6 +128,52 @@ public class recognition extends AppCompatActivity {
     private boolean mBackKeyPressed;
     private Animator currentAnimator;
     private int shortAnimationDuration;
+    private Handler matchHandler = new Handler(msg -> {
+        switch (msg.what) {
+            default:
+                return false;
+            case START_MATCHING:
+                autoCheckMatchingStatus();
+                return true;
+            case STOP_MATCHING:
+            case MATCHING_FINISHED:
+                backgroundedToast(R.string.textProcessDone, Toast.LENGTH_SHORT);
+                return true;
+        }
+    });
+    private Handler pathHandler = new Handler(msg -> {
+        switch (msg.what) {
+            case ORIGINAL_CHANGED:
+                for (MatchUtils util : utils)
+                    util.setOriginal(originalPath);
+                return true;
+            case SAMPLE_CHANGED:
+                for (MatchUtils util : utils)
+                    util.setSample(samplePath);
+                return true;
+            case INITIAL_MATCH:
+                for (int i = 0; i < utils.length; i++)
+                    utils[i] = new MatchUtils(originalPath, samplePath);
+                return true;
+            default:
+                return false;
+        }
+    });
+
+    private static Message createMessage(int msg) {
+        Message message = new Message();
+        message.what = msg;
+        return message;
+    }
+
+    private void autoCheckMatchingStatus() {
+        matchHandler.postDelayed(() -> {
+            if (!isMatching()) {
+                matchHandler.sendMessage(createMessage(MATCHING_FINISHED));
+            } else
+                autoCheckMatchingStatus();
+        }, 1000);
+    }
 
     /**
      * Load image with compression to save time.
@@ -142,6 +212,13 @@ public class recognition extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.recognition);
+        if (!OpenCVLoader.initDebug()) {
+            Log.e("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
+        } else {
+            Log.e("OpenCV", "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
         initialize();
     }
 
@@ -179,23 +256,16 @@ public class recognition extends AppCompatActivity {
 
     private void applyConfig() {
         if (originalPath != null)
-            if (new File(originalPath).exists())
-                setImageView(imgBtnOriginal, originalPath);
+            if (new File(originalPath).exists()) {
+                runOnUiThread(() -> setImageView(imgBtnOriginal, originalPath));
+            }
         if (samplePath != null)
-            if (new File(samplePath).exists())
-                setImageView(imgBtnSample, samplePath);
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        if (!OpenCVLoader.initDebug()) {
-            Log.e("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
-        } else {
-            Log.e("OpenCV", "OpenCV library found inside package. Using it!");
-            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
-        }
+            if (new File(samplePath).exists()) {
+                runOnUiThread(() -> setImageView(imgBtnSample, samplePath));
+            }
+        Message msg = new Message();
+        msg.what = INITIAL_MATCH;
+        pathHandler.sendMessage(msg);
     }
 
     /**
@@ -206,14 +276,12 @@ public class recognition extends AppCompatActivity {
             Intent intent = new Intent();
             intent.setClass(recognition.this, brightness.class);
             startActivity(intent);
-            this.finish();
             overridePendingTransition(R.anim.in_from_left, R.anim.out_to_right);
         });
         menuBtnResult.setOnClickListener(view -> {
             Intent intent = new Intent();
             intent.setClass(recognition.this, result.class);
             startActivity(intent);
-            this.finish();
             overridePendingTransition(R.anim.in_from_right, R.anim.out_to_left);
         });
         RecognitionLayout.setBackgroundColor(this.getColor(R.color.AlphaGray));
@@ -252,24 +320,30 @@ public class recognition extends AppCompatActivity {
         if (resultCode == Activity.RESULT_OK) {
             switch (requestCode) {
                 case REQUEST_ORIGINAL_CAMERA:
-                    setImageView(imgBtnOriginal, originalPath);
+                    runOnUiThread(() -> setImageView(imgBtnOriginal, originalPath));
                     break;
                 case REQUEST_SAMPLE_CAMERA:
-                    setImageView(imgBtnSample, samplePath);
+                    runOnUiThread(() -> setImageView(imgBtnSample, samplePath));
                     break;
                 case REQUEST_ORIGINAL_IMAGE:
                     FileUtils originalFileUtils = new FileUtils(this);
                     originalPath = originalFileUtils.getPath(data.getData());
-                    setImageView(imgBtnOriginal, originalPath);
+                    pathChanged(PictureType.Original);
+                    runOnUiThread(() -> setImageView(imgBtnOriginal, originalPath));
                     break;
                 case REQUEST_SAMPLE_IMAGE:
                     FileUtils sampleFileUtils = new FileUtils(this);
                     samplePath = sampleFileUtils.getPath(data.getData());
-                    setImageView(imgBtnSample, samplePath);
+                    pathChanged(PictureType.Sample);
+                    runOnUiThread(() -> setImageView(imgBtnSample, samplePath));
                     break;
             }
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void pathChanged(PictureType type) {
+        pathHandler.sendMessage(createMessage(type == PictureType.Original ? ORIGINAL_CHANGED : SAMPLE_CHANGED));
     }
 
     @Override
@@ -345,7 +419,7 @@ public class recognition extends AppCompatActivity {
 
         btnStart = findViewById(R.id.btnStart);
         btnStart.setOnClickListener(v -> {
-            if (originalPath == null || samplePath == null) {
+            if (originalPath == null || samplePath == null || imgBtnOriginal.getDrawable() == null || imgBtnSample.getDrawable() == null) {
                 backgroundedToast(R.string.textNullImage, Toast.LENGTH_SHORT);
                 return;
             }
@@ -366,9 +440,9 @@ public class recognition extends AppCompatActivity {
         });
 
         imgBtnOriginal = findViewById(R.id.imgBtnOriginal);
-        imgBtnOriginal.setOnClickListener(v -> zoomImageFromThumb(imgBtnOriginal, originalPath));
+        imgBtnOriginal.setOnClickListener(v -> runOnUiThread(() -> zoomImageFromThumb(imgBtnOriginal, originalPath)));
         imgBtnSample = findViewById(R.id.imgBtnSample);
-        imgBtnSample.setOnClickListener(v -> zoomImageFromThumb(imgBtnSample, samplePath));
+        imgBtnSample.setOnClickListener(v -> runOnUiThread(() -> zoomImageFromThumb(imgBtnSample, samplePath)));
 
         menuBtnBrightness = findViewById(R.id.imBtnBrightness);
         menuBtnRecognition = findViewById(R.id.imBtnRecognition);
@@ -382,6 +456,10 @@ public class recognition extends AppCompatActivity {
 
         Config = getSharedPreferences("Config", MODE_PRIVATE);
         shortAnimationDuration = getResources().getInteger(android.R.integer.config_shortAnimTime);
+    }
+
+    private boolean isMatching() {
+        return executor.getActiveCount() != 0;
     }
 
     private void zoomImageFromThumb(final View thumbView, String imagePath) {
@@ -568,21 +646,16 @@ public class recognition extends AppCompatActivity {
     }
 
     private void startMatching() {
-        for (int i = 0; i < utils.length; i++) {
-            utils[i] = new MatchUtils(originalPath, samplePath);
-        }
-
-        int processing = 0;
-        for (MatchUtils util : utils) {
-            if (util.getState() == Thread.State.RUNNABLE)
-                processing++;
-            else
-                util.start();
-        }
-        if (processing == utils.length) {
+        if (isMatching()) {
             backgroundedToast(R.string.textProcessing, Toast.LENGTH_SHORT);
             return;
         }
+        for (MatchUtils util : utils) {
+            executor.execute(util);
+        }
+        Message message = new Message();
+        message.what = START_MATCHING;
+        matchHandler.sendMessage(message);
 
         backgroundedToast(R.string.textStartMatching, Toast.LENGTH_SHORT);
         PaperGrainDBHelper helper = new PaperGrainDBHelper(this);
@@ -603,7 +676,7 @@ public class recognition extends AppCompatActivity {
     }
 
     private void stopMatching() {
-        //TODO Stop  matching provided image.
+        executor.shutdown();
     }
 
     private File createImageFile(PictureType type) throws IOException {
@@ -619,10 +692,13 @@ public class recognition extends AppCompatActivity {
         );
 
         // Save a file: path for use with ACTION_VIEW intents
-        if (type == PictureType.Original)
+        if (type == PictureType.Original) {
             originalPath = image.getAbsolutePath();
-        else
+            pathChanged(PictureType.Original);
+        } else {
             samplePath = image.getAbsolutePath();
+            pathChanged(PictureType.Sample);
+        }
 
         return image;
     }

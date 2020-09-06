@@ -38,6 +38,7 @@ import static org.opencv.core.Core.divide;
 import static org.opencv.core.Core.mean;
 import static org.opencv.core.Core.multiply;
 import static org.opencv.core.Core.subtract;
+import static org.opencv.imgcodecs.Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE;
 import static org.opencv.imgcodecs.Imgcodecs.imread;
 import static org.opencv.imgproc.Imgproc.COLOR_GRAY2RGBA;
 import static org.opencv.imgproc.Imgproc.COLOR_RGB2BGRA;
@@ -50,11 +51,13 @@ import static org.opencv.imgproc.Imgproc.threshold;
 public class MatchUtils extends Thread {
     public Bitmap originalBMP, sampleBMP, surfBMP;
     public Double ssimValue;
-    private Mat original, sample;
+    private String original, sample;
 
     public MatchUtils(String _original, String _sample) {
-        original = imread(_original, Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
-        sample = imread(_sample, Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
+        if (_original != null)
+            setOriginal(_original);
+        if (_sample != null)
+            setSample(_sample);
     }
 
     private static double autoGetThreshold(Mat src) {
@@ -475,13 +478,29 @@ public class MatchUtils extends Thread {
         return count / sum;
     }
 
+    public void setOriginal(String original) {
+        this.original = original;
+    }
+
+    public void setSample(String sample) {
+        this.sample = sample;
+    }
+
     @Override
     public synchronized void run() {
         match();
     }
 
     private void match() {
-        Mat[] mats = new Mat[]{original, sample};
+//        Pre-rotate
+//        Point center = new Point(sample.height() / 2.0, sample.width() / 2.0);
+//        double angle = 180;
+//        double scale = 1.0;
+//        Mat m = Imgproc.getRotationMatrix2D(center, angle, scale);
+//        Mat dst = new Mat();
+//        Imgproc.warpAffine(sample, dst, m, sample.size());
+
+        Mat[] mats = new Mat[]{imread(original, Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE), imread(sample, CV_LOAD_IMAGE_GRAYSCALE)};
         Mat[] regions;
         double threshold0, threshold1;
         Mat[] binary = new Mat[]{new Mat(), new Mat()};
@@ -489,10 +508,9 @@ public class MatchUtils extends Thread {
             do {
                 regions = randomSubmat(mats);
                 threshold0 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[0]), 3));
-                threshold1 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[1]), 3));
-            } while (threshold0 == -1 || threshold1 == 1);
+            } while (threshold0 == -1);
             threshold(regions[0], binary[0], threshold0, 255, Imgproc.THRESH_BINARY);
-            threshold(regions[1], binary[1], threshold1, 255, Imgproc.THRESH_BINARY);
+            threshold(regions[1], binary[1], threshold0, 255, Imgproc.THRESH_BINARY);
         } while (whitePercent(binary[0]) >= 0.97 || whitePercent(binary[1]) >= 0.97);
         originalBMP = matToBitmap(binary[0]);
         sampleBMP = matToBitmap(binary[1]);
