@@ -66,4 +66,7 @@
     <string name="textProcessAborted">处理中断！</string>
     <string name="textProcessAborting">中断开始！</string>
     <string name="textNotProcessing">处理未开始！</string>
+    <string name="textClearSucceeded">清理成功！</string>
+    <string name="WriteDone">数据写入完成！</string>
+    <string name="WriteStart">开始写入数据！</string>
 </resources>

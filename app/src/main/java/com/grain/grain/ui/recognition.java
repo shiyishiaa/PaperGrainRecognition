@@ -59,6 +59,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.text.ParsePosition;
 import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
@@ -89,7 +90,8 @@ public class recognition extends AppCompatActivity {
             START_MATCHING = 0xDD00,
             ABORT_MATCHING = 0xDD01,
             MATCH_FINISHED = 0xDD02,
-            MATCH_ABORTED = 0xDD03;
+            MATCH_ABORTED = 0xDD03,
+            WRITE_FINISHED = 0xDD04;
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors();
     private static final ThreadPoolExecutor CPUExecutor = new ThreadPoolExecutor(
             NUMBER_OF_CORES + 1,
@@ -120,9 +122,8 @@ public class recognition extends AppCompatActivity {
     // xStart stores the location where swipe gesture starts.
     private float xStart = 0;
     // xEnd stores the location where swipe gesture ends.
-    @SuppressWarnings("FieldCanBeLocal")
     private float xEnd = 0;
-    private long start = 0, end = 0;
+    private String start, end;
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
@@ -155,30 +156,41 @@ public class recognition extends AppCompatActivity {
         }
     });
     private Handler mHandler = new Handler(Looper.getMainLooper());
+
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS", Locale.CHINA);
     private Handler matchHandler = new Handler(msg -> {
         switch (msg.what) {
             default:
                 return false;
             case START_MATCHING:
-                start = Calendar.getInstance().getTimeInMillis();
-                updateTime((String) msg.obj);
+                start = dateFormat.format(Calendar.getInstance().getTime());
+                updateStartTime(start.substring(0, start.length() - 4));
                 autoCheckMatchingStatus();
                 return true;
             case ABORT_MATCHING:
                 autoCheckAbortingStatus();
                 return true;
             case MATCH_FINISHED:
-                end = Calendar.getInstance().getTimeInMillis();
+                end = dateFormat.format(Calendar.getInstance().getTime());
+                updateEndTime(end.substring(0, end.length() - 4));
                 backgroundedToast(R.string.textProcessDone, Toast.LENGTH_SHORT);
                 for (MatchUtils util : utils)
-                    Log.i("SSIM Values", String.valueOf(util.SSIMValue));
-                Log.i("Time Spent", Math.abs(start - end) + " ms");
+                    Log.i("SSIM Values", String.valueOf(util.getSSIMValue()));
+                Log.i("Time cost", Math.abs(
+                        dateFormat.parse(start, new ParsePosition(0)).getTime() -
+                                dateFormat.parse(end, new ParsePosition(0)).getTime()) + " ms");
                 MatchResult result = new MatchResult(this, utils);
                 IOExecutor.execute(result);
+                backgroundedToast(R.string.WriteStart, Toast.LENGTH_SHORT);
+                autoCheckWritingStatus();
+                return true;
+            case WRITE_FINISHED:
+                backgroundedToast(R.string.WriteDone, Toast.LENGTH_SHORT);
                 return true;
             case MATCH_ABORTED:
+                end = dateFormat.format(Calendar.getInstance().getTime());
+                updateEndTime(end.substring(0, end.length() - 4));
                 backgroundedToast(R.string.textProcessAborted, Toast.LENGTH_SHORT);
-                end = Calendar.getInstance().getTimeInMillis();
                 return true;
         }
     });
@@ -189,9 +201,39 @@ public class recognition extends AppCompatActivity {
         return message;
     }
 
-    private void updateTime(String s) {
+    private static Message createMessage(int msg, Object obj) {
+        Message message = new Message();
+        message.what = msg;
+        message.obj = obj;
+        return message;
+    }
+
+    private void autoCheckWritingStatus() {
+        matchHandler.postDelayed(() -> {
+            if (isWriting())
+                autoCheckWritingStatus();
+            else
+                matchHandler.sendMessage(createMessage(WRITE_FINISHED));
+        }, 1000);
+    }
+
+    private boolean isWriting() {
+        return IOExecutor.getActiveCount() != 0;
+    }
+
+    private boolean isMatching() {
+        return CPUExecutor.getActiveCount() != 0;
+    }
+
+    private void updateStartTime(String s) {
         for (MatchUtils util : utils) {
-            util.setTime(s);
+            util.setStart(s);
+        }
+    }
+
+    private void updateEndTime(String s) {
+        for (MatchUtils util : utils) {
+            util.setEnd(s);
         }
     }
 
@@ -496,11 +538,6 @@ public class recognition extends AppCompatActivity {
         shortAnimationDuration = getResources().getInteger(android.R.integer.config_shortAnimTime);
     }
 
-    private boolean isMatching() {
-        //Log.i("Thread",String.valueOf(CPUExecutor.getActiveCount()));
-        return CPUExecutor.getActiveCount() != 0;
-    }
-
     private void zoomImageFromThumb(final View thumbView, String imagePath) {
         // If there's an animation in progress, cancel it
         // immediately and proceed with this one.
@@ -693,9 +730,7 @@ public class recognition extends AppCompatActivity {
             CPUExecutor.execute(util);
         }
         Message message = new Message();
-        String time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA).format(Calendar.getInstance().getTime());
         message.what = START_MATCHING;
-        message.obj = time;
         matchHandler.sendMessage(message);
 
         backgroundedToast(R.string.textStartMatching, Toast.LENGTH_SHORT);

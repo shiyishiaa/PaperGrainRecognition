@@ -15,6 +15,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.Display;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -43,8 +44,10 @@ import com.grain.grain.io.PaperGrainDBHelper;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -56,7 +59,7 @@ import static com.grain.grain.io.Columns._ID;
 
 public class result extends AppCompatActivity {
     private TextView textHistory, textGroup;
-    private TextView textSSIM, textValue, textMatchResult, textResult;
+    private TextView textSSIM, textSSIMValue, textMatchResult, textResult;
     private TextView labelOriginalPicture, labelSamplePicture;
     private ImageButton imgBtnOriginal, imgBtnSample, imgBtnMatch;
     private ImageButton menuBtnBrightness, menuBtnRecognition, menuBtnResult;
@@ -78,9 +81,12 @@ public class result extends AppCompatActivity {
     private String originalResult;
     private String sampleResult;
 
-    private static String fileName(String path) {
-        String[] split = path.split("/");
-        return split[split.length - 1];
+    @SuppressWarnings("UnusedReturnValue")
+    public static boolean deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory.isDirectory())
+            for (File child : Objects.requireNonNull(fileOrDirectory.listFiles()))
+                deleteRecursive(child);
+        return fileOrDirectory.delete();
     }
 
     @Override
@@ -141,17 +147,22 @@ public class result extends AppCompatActivity {
                     .append(Columns.COLUMN_NAME_ORIGINAL_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
                     .append(",")
                     .append(Columns.COLUMN_NAME_SAMPLE_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
+                    .append(",")
+                    .append(Columns.COLUMN_NAME_SSIM_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
                     .append(" FROM ")
                     .append(TABLE_NAME)
                     .append(" WHERE ")
                     .append(_COUNT).append("=").append(spinnerHistory.getSelectedItemPosition() + 1);
             Cursor cursor = history.getDatabase().rawQuery(String.valueOf(builder), null);
+            String SSIM = "";
             if (cursor.moveToFirst()) {
                 SURFResult = cursor.getString(0);
                 originalResult = cursor.getString(1);
                 sampleResult = cursor.getString(2);
+                SSIM = cursor.getString(3);
             }
             cursor.close();
+            // Update images.
             if (SURFResult != null)
                 runOnUiThread(() -> setImageView(imgBtnMatch, SURFResult));
             else
@@ -161,10 +172,14 @@ public class result extends AppCompatActivity {
             } else
                 imgBtnOriginal.setImageBitmap(null);
             if (sampleResult != null) {
-                String finalSample = sampleResult;
                 runOnUiThread(() -> setImageView(imgBtnSample, sampleResult));
             } else
                 imgBtnSample.setImageBitmap(null);
+            // Update texts.
+            if (SSIM != null) {
+                textSSIMValue.setText(SSIM);
+            } else
+                textSSIMValue.setText(null);
         } catch (NullPointerException ignored) {
         }
     }
@@ -238,7 +253,7 @@ public class result extends AppCompatActivity {
         spinnerGroup = findViewById(R.id.spinnerGroup);
 
         textSSIM = findViewById(R.id.textSSIM);
-        textValue = findViewById(R.id.textValue);
+        textSSIMValue = findViewById(R.id.textSSIMValue);
         textMatchResult = findViewById(R.id.textMatchResult);
         textResult = findViewById(R.id.textResult);
 
@@ -264,22 +279,33 @@ public class result extends AppCompatActivity {
         });
         btnClear = findViewById(R.id.btnClear);
         btnClear.setOnClickListener(v -> {
-            AlertDialog.Builder customDialog = new AlertDialog.Builder(this);
-            View dialogView = getLayoutInflater().inflate(R.layout.clear_dialog, null);
-            customDialog.setTitle(getString(R.string.textWarning))
-                    .setIcon(R.drawable.warning)
-                    .setView(dialogView)
-                    .setPositiveButton(R.string.textConfirm, (dialog, which) -> {
-                        SQLiteDatabase.deleteDatabase(getDatabasePath(PaperGrainDBHelper.DATABASE_NAME));
-                        spinnerHistory.setEnabled(false);
-                        spinnerHistory.setAdapter(new SimpleCursorAdapter(result.this, R.layout.spinner, null, null, null, 0));
+            if (spinnerHistory.isEnabled()) {
+                AlertDialog.Builder customDialog = new AlertDialog.Builder(this);
+                View dialogView = getLayoutInflater().inflate(R.layout.clear_dialog, null);
+                customDialog.setTitle(getString(R.string.textWarning))
+                        .setIcon(R.drawable.warning)
+                        .setView(dialogView)
+                        .setPositiveButton(R.string.textConfirm, (dialog, which) -> {
+                            SQLiteDatabase.deleteDatabase(getDatabasePath(PaperGrainDBHelper.DATABASE_NAME));
+                            spinnerHistory.setEnabled(false);
+                            spinnerHistory.setAdapter(new SimpleCursorAdapter(result.this, R.layout.spinner, null, null, null, 0));
+                            spinnerGroup.setEnabled(false);
 
-                        imgBtnMatch.setImageBitmap(null);
-                        imgBtnOriginal.setImageBitmap(null);
-                        imgBtnSample.setImageBitmap(null);
-                    })
-                    .setNegativeButton(R.string.textCancel, (dialog, which) -> dialog.dismiss())
-                    .show();
+                            File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES + "/" + getString(R.string.ResultFolderName) + "/");
+                            if (storageDir != null)
+                                deleteRecursive(storageDir);
+
+                            imgBtnMatch.setImageBitmap(null);
+                            imgBtnOriginal.setImageBitmap(null);
+                            imgBtnSample.setImageBitmap(null);
+
+                            textSSIMValue.setText(null);
+                            backgroundedToast(R.string.textClearSucceeded, Toast.LENGTH_SHORT);
+                        })
+                        .setNegativeButton(R.string.textCancel, (dialog, which) -> dialog.dismiss())
+                        .show();
+            } else
+                backgroundedToast(R.string.textEmptyDatabase, Toast.LENGTH_SHORT);
         });
 
         menuBtnBrightness = findViewById(R.id.imBtnBrightness);
@@ -432,6 +458,8 @@ public class result extends AppCompatActivity {
 
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (spinnerHistory.getAdapter().getCount() != 0)
+                    spinnerHistory.setSelection(spinnerHistory.getAdapter().getCount() - 1);
                 spinnerGroup.setEnabled(true);
                 updateImage();
             }
@@ -500,9 +528,7 @@ public class result extends AppCompatActivity {
         History(Context context, SQLiteDatabase database) {
             try {
                 String sql = "SELECT " +
-                        _ID + "," +
-                        _COUNT + "," +
-                        COLUMN_NAME_TIME_START +
+                        _ID + "," + _COUNT + "," + COLUMN_NAME_TIME_START +
                         " FROM " +
                         TABLE_NAME +
                         " WHERE " +
@@ -550,16 +576,14 @@ public class result extends AppCompatActivity {
         }
 
         public CursorAdapter delete(int position) {
-            String delete = "UPDATE " +
+            String delete = " UPDATE " +
                     TABLE_NAME +
                     " SET " + COLUMN_NAME_DELETED + "=" + 1 +
                     " WHERE " + _COUNT + "=" + (position + 1);
             database.execSQL(delete);
             updateOrderAfterDelete();
-            String sql = "SELECT " +
-                    _ID + "," +
-                    _COUNT + "," +
-                    COLUMN_NAME_TIME_START +
+            String sql = " SELECT " +
+                    _ID + "," + _COUNT + "," + COLUMN_NAME_TIME_START +
                     " FROM " +
                     TABLE_NAME +
                     " WHERE " +

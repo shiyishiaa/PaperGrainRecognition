@@ -71,4 +71,7 @@
     <string name="textNotProcessing">Process was not started!</string>
     <string name="textProcessAborting">Start aborting!</string>
     <string name="SURFFolderName" translatable="false">SURF</string>
+    <string name="textClearSucceeded">Succeeded to clear!</string>
+    <string name="WriteDone">Data writing finished!</string>
+    <string name="WriteStart">Data writing starts!</string>
 </resources>

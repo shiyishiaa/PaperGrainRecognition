@@ -15,6 +15,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import static com.grain.grain.io.Columns.COLUMN_NAME_FINISHED;
+import static com.grain.grain.io.Columns.COLUMN_NAME_TIME_END;
 import static com.grain.grain.io.Columns.COLUMN_NAME_TIME_START;
 import static com.grain.grain.io.Columns.TABLE_NAME;
 
@@ -58,9 +59,10 @@ public class MatchResult extends Thread {
         SQLiteDatabase write = helper.getWritableDatabase();
         ContentValues values = new ContentValues();
 
-        File storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES + "/" +
-                context.getString(R.string.ResultFolderName) + "/" +
-                utils[0].getTime());
+        File storageDir =
+                context.getExternalFilesDir(Environment.DIRECTORY_PICTURES + "/" +
+                        context.getString(R.string.ResultFolderName) + "/" +
+                        utils[0].getStart());
         File originalDir = new File(storageDir, context.getString(R.string.OriginalFolderName));
         File sampleDir = new File(storageDir, context.getString(R.string.SampleFolderName));
         File SURFDir = new File(storageDir, context.getString(R.string.SURFFolderName));
@@ -74,11 +76,14 @@ public class MatchResult extends Thread {
                 values.put("sample_" + i, sample.getAbsolutePath());
                 values.put("surf_" + i, SURF.getAbsolutePath());
 
+                values.put("SSIM_" + i, utils[i].getSSIMValue());
+
                 saveBitmap(utils[i].originalBMP, original);
                 saveBitmap(utils[i].sampleBMP, sample);
                 saveBitmap(utils[i].surfBMP, SURF);
             }
-        values.put(COLUMN_NAME_TIME_START, utils[0].getTime());
+        values.put(COLUMN_NAME_TIME_START, utils[0].getStart());
+        values.put(COLUMN_NAME_TIME_END, utils[0].getEnd());
         values.put(Columns.COLUMN_NAME_ORIGINAL, utils[0].getPath()[0]);
         values.put(Columns.COLUMN_NAME_SAMPLE, utils[0].getPath()[1]);
         values.put(Columns.COLUMN_NAME_DELETED, false);
@@ -96,7 +101,7 @@ public class MatchResult extends Thread {
         final double target = 10.0, lowest = 3.0;
         double ruler = 7.0;
         for (MatchUtils util : utils) {
-            ruler += getWeight(util.SSIMValue);
+            ruler += getWeight(util.getSSIMValue());
             if (ruler >= target)
                 result = true;
             else if (ruler <= lowest)
@@ -114,17 +119,4 @@ public class MatchResult extends Thread {
             e.printStackTrace();
         }
     }
-
-//    public synchronized File[] generatePath(MatchUtils utils) {
-//        Bitmap[] bitmaps = utils.getBitmaps();
-//        StringBuilder builder = new StringBuilder();
-//        builder.append(Environment.DIRECTORY_PICTURES)
-//                .append("/")
-//                .append(context.getString(R.string.ResultFolderName))
-//                .append("/");
-//        File originalDir = context.getExternalFilesDir(String.valueOf(
-//                builder.append(context.getString(R.string.OriginalFolderName))
-//                        .append("/")
-//                        .append()));
-//    }
 }

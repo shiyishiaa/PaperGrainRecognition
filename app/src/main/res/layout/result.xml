@@ -46,7 +46,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:gravity="center" />
+                    android:gravity="end|center_vertical" />
             </LinearLayout>
 
             <LinearLayout
@@ -95,8 +95,9 @@
                     android:id="@+id/spinnerGroup"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:entries="@array/picture_index"
-                    android:gravity="center" />
+                    android:entries="@array/match_index"
+                    android:gravity="end|center_vertical"
+                    android:textSize="18sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -117,10 +118,12 @@
                     android:textSize="18sp" />
 
                 <TextView
-                    android:id="@+id/textValue"
+                    android:id="@+id/textSSIMValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:gravity="end|center_vertical"
+                    android:textColor="@color/colorStatusBar"
                     android:textSize="18sp" />
             </LinearLayout>
 

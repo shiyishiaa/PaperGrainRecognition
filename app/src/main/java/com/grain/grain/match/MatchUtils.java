@@ -31,7 +31,6 @@ import org.opencv.xfeatures2d.SURF;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
 
 import static org.opencv.core.Core.add;
@@ -51,8 +50,8 @@ import static org.opencv.imgproc.Imgproc.threshold;
 
 public class MatchUtils extends Thread {
     public Bitmap originalBMP, sampleBMP, surfBMP;
-    public Double SSIMValue;
-    private String original, sample, time;
+    private Double SSIMValue;
+    private String original, sample, start, end;
 
     public MatchUtils(String _original, String _sample) {
         if (_original != null)
@@ -149,7 +148,11 @@ public class MatchUtils extends Thread {
         return bmp;
     }
 
-    public static Mat surf(Mat imgObject, Mat imgScene) {
+    public static Mat[] surf(Mat imgObject, Mat imgScene) {
+        Mat imgObjectCopy = imgObject.clone();
+        Mat imgSceneCopy = imgScene.clone();
+        Bitmap bitmap1 = matToBitmap(imgObjectCopy);
+        Bitmap bitmap2 = matToBitmap(imgSceneCopy);
         //-- 步骤1：使用SURF Detector检测关键点，计算描述符
         double hessianThreshold = 400;
         int nOctaves = 4;
@@ -182,8 +185,17 @@ public class MatchUtils extends Thread {
         goodMatches.fromList(listOfGoodMatches);
         //-- 匹配
         Mat imgMatches = new Mat();
-        Features2d.drawMatches(imgObject, keyPointsObject, imgScene, keyPointsScene, goodMatches, imgMatches, Scalar.all(-1),
-                Scalar.all(-1), new MatOfByte(), Features2d.NOT_DRAW_SINGLE_POINTS);
+        Features2d.drawMatches(
+                imgObject,
+                keyPointsObject,
+                imgScene,
+                keyPointsScene,
+                goodMatches,
+                imgMatches,
+                Scalar.all(-1),
+                Scalar.all(-1),
+                new MatOfByte(),
+                Features2d.NOT_DRAW_SINGLE_POINTS);
         //-- 定位对象
         List<Point> obj = new ArrayList<>();
         List<Point> scene = new ArrayList<>();
@@ -202,6 +214,7 @@ public class MatchUtils extends Thread {
         Mat H = Calib3d.findHomography(objMat, sceneMat, Calib3d.RANSAC, ransacReprojThreshold);
         //-- 从image_1（要“检测”的对象）获取角
         Mat objCorners = new Mat(4, 1, CvType.CV_32FC2), sceneCorners = new Mat();
+        // obj的左上、右上、左下、右下
         float[] objCornersData = new float[(int) (objCorners.total() * objCorners.channels())];
         objCorners.get(0, 0, objCornersData);
         objCornersData[0] = 0;
@@ -214,8 +227,58 @@ public class MatchUtils extends Thread {
         objCornersData[7] = imgObject.rows();
         objCorners.put(0, 0, objCornersData);
         Core.perspectiveTransform(objCorners, sceneCorners, H);
+        // scene的左上、右上、左下、右下
         float[] sceneCornersData = new float[(int) (sceneCorners.total() * sceneCorners.channels())];
         sceneCorners.get(0, 0, sceneCornersData);
+        Point[] scenePoints = new Point[4];
+        scenePoints[0] = new Point(sceneCornersData[0], sceneCornersData[1]);
+        scenePoints[1] = new Point(sceneCornersData[2], sceneCornersData[3]);
+        scenePoints[2] = new Point(sceneCornersData[4], sceneCornersData[5]);
+        scenePoints[3] = new Point(sceneCornersData[6], sceneCornersData[7]);
+        Boolean[] isInBoundary = new Boolean[4];
+        int index = -1;
+        for (int i = 0; i < isInBoundary.length; i++) {
+            isInBoundary[i] = isPointOutOfBoundary(imgScene, scenePoints[i]);
+            if (isInBoundary[i])
+                index = i;
+        }
+
+        Mat matchedObj = new Mat(), matchedScene = new Mat();
+        Point scenePoint = new Point(), objPoint = new Point();
+        if (index != -1) {
+            scenePoint = scenePoints[index];
+            objPoint = getSymmetricalPoint(scenePoint, new Point(imgObject.width() / 2.0, imgObject.height() / 2.0));
+        }
+        switch (index) {
+            case 0:
+                matchedObj = imgObjectCopy.submat(0, (int) objPoint.y, 0, (int) objPoint.x);
+                matchedScene = imgSceneCopy.submat((int) scenePoint.y, imgScene.height(), (int) scenePoint.x, imgScene.width());
+                break;
+            case 1:
+                matchedObj = imgObjectCopy.submat(0, (int) objPoint.y, (int) objPoint.x, imgObject.width());
+                matchedScene = imgSceneCopy.submat((int) scenePoint.y, imgScene.height(), 0, (int) scenePoint.x);
+                break;
+            case 2:
+                matchedObj = imgObjectCopy.submat((int) objPoint.y, imgObject.height(), (int) objPoint.x, imgObject.width());
+                matchedScene = imgSceneCopy.submat(0, (int) scenePoint.y, 0, (int) scenePoint.x);
+                break;
+            case 3:
+                matchedObj = imgObjectCopy.submat((int) objPoint.y, imgObject.height(), 0, (int) objPoint.x);
+                matchedScene = imgSceneCopy.submat(0, (int) scenePoint.y, (int) scenePoint.x, imgScene.width());
+                break;
+            default:
+                matchedObj = imgObjectCopy;
+                matchedScene = imgSceneCopy;
+        }
+
+        Rect common = new Rect(
+                0,
+                0,
+                Math.min(matchedObj.width(), matchedScene.width()),
+                Math.min(matchedObj.height(), matchedScene.height()));
+        matchedObj = matchedObj.submat(common);
+        matchedScene = matchedScene.submat(common);
+
         //-- 在角之间绘制线（场景中的映射对象-image_2）
         line(imgMatches, new Point(sceneCornersData[0] + imgObject.cols(), sceneCornersData[1]),
                 new Point(sceneCornersData[2] + imgObject.cols(), sceneCornersData[3]), new Scalar(0, 255, 0), 4);
@@ -225,7 +288,7 @@ public class MatchUtils extends Thread {
                 new Point(sceneCornersData[6] + imgObject.cols(), sceneCornersData[7]), new Scalar(0, 255, 0), 4);
         line(imgMatches, new Point(sceneCornersData[6] + imgObject.cols(), sceneCornersData[7]),
                 new Point(sceneCornersData[0] + imgObject.cols(), sceneCornersData[1]), new Scalar(0, 255, 0), 4);
-        return imgMatches;
+        return new Mat[]{imgMatches, matchedObj, matchedScene};
     }
 
     public static Mat plotRGBHist(Mat src) {
@@ -311,8 +374,8 @@ public class MatchUtils extends Thread {
         int height = noEdgeMat.height();
         int width = noEdgeMat.width();
 
-        int Y = Objects.requireNonNull(normalRandomDouble(0, height - mat.height() / 10.0, 20)).intValue();
-        int X = Objects.requireNonNull(normalRandomDouble(0, width - mat.width() / 10.0, 20)).intValue();
+        int Y = randomInt(0, height - mat.height() / 10);
+        int X = randomInt(0, width - mat.width() / 10);
 
         return new Rect(X, Y, mat.width() / 10, mat.height() / 10);
     }
@@ -505,16 +568,32 @@ public class MatchUtils extends Thread {
         return count / sum;
     }
 
+    public static boolean isPointOutOfBoundary(Mat mat, Point point) {
+        return (0 <= point.x) && (point.x <= mat.width()) && (0 <= point.y) && (point.y <= mat.height());
+    }
+
+    public static Point getSymmetricalPoint(Point point, Point center) {
+        return new Point(2 * center.x - point.x, 2 * center.y - point.y);
+    }
+
     public String[] getPath() {
         return new String[]{original, sample};
     }
 
-    public String getTime() {
-        return time;
+    public String getStart() {
+        return start;
     }
 
-    public void setTime(String time) {
-        this.time = time;
+    public void setStart(String start) {
+        this.start = start;
+    }
+
+    public String getEnd() {
+        return end;
+    }
+
+    public void setEnd(String end) {
+        this.end = end;
     }
 
     public Double getSSIMValue() {
@@ -535,14 +614,6 @@ public class MatchUtils extends Thread {
     }
 
     private void match() {
-//        Pre-rotate
-//        Point center = new Point(sample.height() / 2.0, sample.width() / 2.0);
-//        double angle = 180;
-//        double scale = 1.0;
-//        Mat m = Imgproc.getRotationMatrix2D(center, angle, scale);
-//        Mat dst = new Mat();
-//        Imgproc.warpAffine(sample, dst, m, sample.size());
-
         Mat[] mats = new Mat[]{imread(original, Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE), imread(sample, CV_LOAD_IMAGE_GRAYSCALE)};
         Mat[] regions;
         double threshold0, threshold1;
@@ -551,13 +622,15 @@ public class MatchUtils extends Thread {
             do {
                 regions = randomSubmat(mats);
                 threshold0 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[0]), 3));
-            } while (threshold0 == -1);
+                threshold1 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[1]), 3));
+            } while (threshold0 == -1 || threshold1 == -1);
             threshold(regions[0], binary[0], threshold0, 255, Imgproc.THRESH_BINARY);
-            threshold(regions[1], binary[1], threshold0, 255, Imgproc.THRESH_BINARY);
+            threshold(regions[1], binary[1], threshold1, 255, Imgproc.THRESH_BINARY);
         } while (whitePercent(binary[0]) >= 0.97 || whitePercent(binary[1]) >= 0.97);
-        originalBMP = matToBitmap(binary[0]);
-        sampleBMP = matToBitmap(binary[1]);
-        surfBMP = matToBitmap(surf(binary[0], binary[1]));
-        SSIMValue = getMSSIM(binary[0], binary[1]).val[0];
+        Mat[] surf = surf(binary[0], binary[1]);
+        surfBMP = matToBitmap(surf[0]);
+        originalBMP = matToBitmap(surf[1]);
+        sampleBMP = matToBitmap(surf[2]);
+        SSIMValue = getMSSIM(surf[1], surf[2]).val[0];
     }
 }
