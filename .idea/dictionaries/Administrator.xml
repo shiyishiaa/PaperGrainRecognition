@@ -2,6 +2,7 @@
   <dictionary name="Administrator">
     <words>
       <w>imgproc</w>
+      <w>lossless</w>
       <w>mssim</w>
       <w>seekbar</w>
       <w>ssim</w>

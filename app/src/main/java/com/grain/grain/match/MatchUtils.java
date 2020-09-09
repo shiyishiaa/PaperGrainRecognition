@@ -1,4 +1,4 @@
-package com.grain.grain.matching;
+package com.grain.grain.match;
 
 import android.graphics.Bitmap;
 import android.util.Log;
@@ -31,6 +31,7 @@ import org.opencv.xfeatures2d.SURF;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 
 import static org.opencv.core.Core.add;
@@ -50,8 +51,8 @@ import static org.opencv.imgproc.Imgproc.threshold;
 
 public class MatchUtils extends Thread {
     public Bitmap originalBMP, sampleBMP, surfBMP;
-    public Double ssimValue;
-    private String original, sample;
+    public Double SSIMValue;
+    private String original, sample, time;
 
     public MatchUtils(String _original, String _sample) {
         if (_original != null)
@@ -295,7 +296,7 @@ public class MatchUtils extends Thread {
     public static Mat[] randomSubmat(@NotNull Mat[] mats) {
         Mat[] regions = new Mat[mats.length];
         Rect rect = randomRect(mats[0]);
-        int horizontal = (int) mats[0].width() / 1000, vertical = (int) mats[0].height() / 1000;
+        int horizontal = mats[0].width() / 1000, vertical = mats[0].height() / 1000;
         for (int i = 0; i < mats.length; i++) {
             Mat noEdgeMat = removeEdge(mats[i], horizontal, vertical);
             regions[i] = noEdgeMat.submat(rect);
@@ -304,14 +305,14 @@ public class MatchUtils extends Thread {
     }
 
     private static Rect randomRect(@NotNull Mat mat) {
-        int horizontal = (int) mat.width() / 1000, vertical = (int) mat.height() / 1000;
+        int horizontal = mat.width() / 1000, vertical = mat.height() / 1000;
         Mat noEdgeMat = removeEdge(mat, horizontal, vertical);
 
         int height = noEdgeMat.height();
         int width = noEdgeMat.width();
 
-        int Y = randomInt(0, height - mat.height() / 10);
-        int X = randomInt(0, width - mat.width() / 10);
+        int Y = Objects.requireNonNull(normalRandomDouble(0, height - mat.height() / 10.0, 20)).intValue();
+        int X = Objects.requireNonNull(normalRandomDouble(0, width - mat.width() / 10.0, 20)).intValue();
 
         return new Rect(X, Y, mat.width() / 10, mat.height() / 10);
     }
@@ -324,6 +325,32 @@ public class MatchUtils extends Thread {
      */
     public static int randomInt(int min, int max) {
         return new Random().nextInt(max) % (max - min + 1) + min;
+    }
+
+    /**
+     * 普通正态随机分布
+     *
+     * @param u 均值
+     * @param v 方差
+     * @return 正态分布
+     */
+    public static double normalRandomDouble(double u, double v) {
+        Random random = new Random();
+        return Math.sqrt(v) * random.nextGaussian() + u;
+    }
+
+    public static Double normalRandomDouble(double lower, double upper, double v) {
+        if (lower > upper) {
+            double temp = upper;
+            upper = lower;
+            lower = temp;
+        } else if (lower == upper)
+            return null;
+        double number;
+        do {
+            number = normalRandomDouble((lower + upper) / 2f, v);
+        } while (number <= lower || number >= upper);
+        return number;
     }
 
     private static Mat removeEdge(Mat mat, int horizontal, int vertical) {
@@ -478,6 +505,22 @@ public class MatchUtils extends Thread {
         return count / sum;
     }
 
+    public String[] getPath() {
+        return new String[]{original, sample};
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
+    }
+
+    public Double getSSIMValue() {
+        return SSIMValue;
+    }
+
     public void setOriginal(String original) {
         this.original = original;
     }
@@ -515,6 +558,6 @@ public class MatchUtils extends Thread {
         originalBMP = matToBitmap(binary[0]);
         sampleBMP = matToBitmap(binary[1]);
         surfBMP = matToBitmap(surf(binary[0], binary[1]));
-        ssimValue = getMSSIM(binary[0], binary[1]).val[0];
+        SSIMValue = getMSSIM(binary[0], binary[1]).val[0];
     }
 }

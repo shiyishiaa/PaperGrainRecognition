@@ -7,11 +7,9 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
@@ -22,6 +20,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -46,11 +45,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
 
-import com.grain.grain.Columns;
-import com.grain.grain.FileUtils;
-import com.grain.grain.PaperGrainDBHelper;
 import com.grain.grain.R;
-import com.grain.grain.matching.MatchUtils;
+import com.grain.grain.io.FileUtils;
+import com.grain.grain.match.MatchResult;
+import com.grain.grain.match.MatchUtils;
 
 import org.jetbrains.annotations.NotNull;
 import org.opencv.android.BaseLoaderCallback;
@@ -61,6 +59,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -88,17 +87,25 @@ public class recognition extends AppCompatActivity {
     // Match codes
     private static final int
             START_MATCHING = 0xDD00,
-            STOP_MATCHING = 0xDD01,
-            MATCHING_FINISHED = 0xDD02,
-            MATCHING_ABORTED = STOP_MATCHING;
+            ABORT_MATCHING = 0xDD01,
+            MATCH_FINISHED = 0xDD02,
+            MATCH_ABORTED = 0xDD03;
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors();
-    private static final ThreadPoolExecutor executor = new ThreadPoolExecutor(
+    private static final ThreadPoolExecutor CPUExecutor = new ThreadPoolExecutor(
             NUMBER_OF_CORES + 1,
             2 * NUMBER_OF_CORES,
             5,
             TimeUnit.MINUTES,
             new ArrayBlockingQueue<>(10),
             new ThreadPoolExecutor.DiscardOldestPolicy());
+    private static final ThreadPoolExecutor IOExecutor = new ThreadPoolExecutor(
+            2 * NUMBER_OF_CORES + 1,
+            3 * NUMBER_OF_CORES,
+            5,
+            TimeUnit.MINUTES,
+            new ArrayBlockingQueue<>(10),
+            new ThreadPoolExecutor.DiscardOldestPolicy());
+    private Toast toast;
     private MatchUtils[] utils = new MatchUtils[10];
     private SharedPreferences Config;
     // Storage path
@@ -106,7 +113,7 @@ public class recognition extends AppCompatActivity {
     // Various widgets
     private Button btnOriginalChoosePicture, btnOriginalOpenCamera, btnOriginalClear;
     private Button btnSampleChoosePicture, btnSampleOpenCamera, btnSampleClear;
-    private Button btnStart, btnStop;
+    private Button btnStart, btnAbort;
     private ImageButton imgBtnOriginal, imgBtnSample;
     private ImageButton menuBtnBrightness, menuBtnRecognition, menuBtnResult;
     private LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout, MainLayout, LaunchLayout;
@@ -129,24 +136,6 @@ public class recognition extends AppCompatActivity {
     private boolean mBackKeyPressed;
     private Animator currentAnimator;
     private int shortAnimationDuration;
-    private Handler matchHandler = new Handler(msg -> {
-        switch (msg.what) {
-            default:
-                return false;
-            case START_MATCHING:
-                autoCheckMatchingStatus();
-                start = Calendar.getInstance().getTimeInMillis();
-                return true;
-            case STOP_MATCHING:
-            case MATCHING_FINISHED:
-                backgroundedToast(R.string.textProcessDone, Toast.LENGTH_SHORT);
-                end = Calendar.getInstance().getTimeInMillis();
-                for (MatchUtils util : utils)
-                    Log.i("State", String.valueOf(util.ssimValue));
-                Log.i("Time Spent", String.valueOf(Math.abs(start - end)) + " ms");
-                return true;
-        }
-    });
     private Handler pathHandler = new Handler(msg -> {
         switch (msg.what) {
             case ORIGINAL_CHANGED:
@@ -165,6 +154,34 @@ public class recognition extends AppCompatActivity {
                 return false;
         }
     });
+    private Handler mHandler = new Handler(Looper.getMainLooper());
+    private Handler matchHandler = new Handler(msg -> {
+        switch (msg.what) {
+            default:
+                return false;
+            case START_MATCHING:
+                start = Calendar.getInstance().getTimeInMillis();
+                updateTime((String) msg.obj);
+                autoCheckMatchingStatus();
+                return true;
+            case ABORT_MATCHING:
+                autoCheckAbortingStatus();
+                return true;
+            case MATCH_FINISHED:
+                end = Calendar.getInstance().getTimeInMillis();
+                backgroundedToast(R.string.textProcessDone, Toast.LENGTH_SHORT);
+                for (MatchUtils util : utils)
+                    Log.i("SSIM Values", String.valueOf(util.SSIMValue));
+                Log.i("Time Spent", Math.abs(start - end) + " ms");
+                MatchResult result = new MatchResult(this, utils);
+                IOExecutor.execute(result);
+                return true;
+            case MATCH_ABORTED:
+                backgroundedToast(R.string.textProcessAborted, Toast.LENGTH_SHORT);
+                end = Calendar.getInstance().getTimeInMillis();
+                return true;
+        }
+    });
 
     private static Message createMessage(int msg) {
         Message message = new Message();
@@ -172,10 +189,25 @@ public class recognition extends AppCompatActivity {
         return message;
     }
 
+    private void updateTime(String s) {
+        for (MatchUtils util : utils) {
+            util.setTime(s);
+        }
+    }
+
+    private void autoCheckAbortingStatus() {
+        matchHandler.postDelayed(() -> {
+            if (!isMatching()) {
+                matchHandler.sendMessage(createMessage(MATCH_ABORTED));
+            } else
+                autoCheckAbortingStatus();
+        }, 1000);
+    }
+
     private void autoCheckMatchingStatus() {
         matchHandler.postDelayed(() -> {
             if (!isMatching()) {
-                matchHandler.sendMessage(createMessage(MATCHING_FINISHED));
+                matchHandler.sendMessage(createMessage(MATCH_FINISHED));
             } else
                 autoCheckMatchingStatus();
         }, 1000);
@@ -437,8 +469,8 @@ public class recognition extends AppCompatActivity {
             startMatching();
         });
 
-        btnStop = findViewById(R.id.btnStop);
-        btnStop.setOnClickListener(v -> {
+        btnAbort = findViewById(R.id.btAbort);
+        btnAbort.setOnClickListener(v -> {
             if (imgBtnSample.getDrawable() == null || imgBtnOriginal.getDrawable() == null)
                 return;
             writeConfig();
@@ -465,7 +497,8 @@ public class recognition extends AppCompatActivity {
     }
 
     private boolean isMatching() {
-        return executor.getActiveCount() != 0;
+        //Log.i("Thread",String.valueOf(CPUExecutor.getActiveCount()));
+        return CPUExecutor.getActiveCount() != 0;
     }
 
     private void zoomImageFromThumb(final View thumbView, String imagePath) {
@@ -657,32 +690,49 @@ public class recognition extends AppCompatActivity {
             return;
         }
         for (MatchUtils util : utils) {
-            executor.execute(util);
+            CPUExecutor.execute(util);
         }
         Message message = new Message();
+        String time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA).format(Calendar.getInstance().getTime());
         message.what = START_MATCHING;
+        message.obj = time;
         matchHandler.sendMessage(message);
 
         backgroundedToast(R.string.textStartMatching, Toast.LENGTH_SHORT);
-        PaperGrainDBHelper helper = new PaperGrainDBHelper(this);
-        SQLiteDatabase write = helper.getWrite();
-
-        ContentValues values = new ContentValues();
-        values.put(Columns.COLUMN_NAME_ORIGINAL, originalPath);
-        values.put(Columns.COLUMN_NAME_SAMPLE, samplePath);
-        values.put(Columns.COLUMN_NAME_TIME_START,
-                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).
-                        format(Calendar.getInstance().getTime()));
-        values.put(Columns.COLUMN_NAME_FINISHED, false);
-        values.put(Columns.COLUMN_NAME_DELETED, false);
-        write.insert(Columns.TABLE_NAME, null, values);
-
-        // Resort the data after odd out the deleted records.
-        PaperGrainDBHelper.updateCount(write);
     }
 
     private void stopMatching() {
-        executor.shutdown();
+        if (!isMatching()) {
+            backgroundedToast(R.string.textNotProcessing, Toast.LENGTH_SHORT);
+            return;
+        }
+
+        backgroundedToast(R.string.textProcessAborting, Toast.LENGTH_SHORT);
+        Message message = new Message();
+        message.what = ABORT_MATCHING;
+        matchHandler.sendMessage(message);
+
+        long time_out = 5;//超时时间，自己根据任务特点设置
+        //第一步，调用shutdown等待在执行的任务和提交等待的任务执行，同时不允许提交任务
+        CPUExecutor.shutdown();
+        try {
+            if (!CPUExecutor.awaitTermination(time_out, TimeUnit.SECONDS)) {
+                //如果等待一段时间后还有任务在执行中被中断或者有任务提交了未执行
+                //1.正在执行被中断的任务需要编写任务代码的时候响应中断
+                List<Runnable> waitToExecuteTaskList = CPUExecutor.shutdownNow();
+                //2.处理提交了未执行的任务，一般情况不会出现
+//                for (Runnable runnable : waitToExecuteTaskList) {
+//
+//                }
+            }
+        } catch (InterruptedException e) {//如果被中断了
+            //1.正在执行被中断的任务需要编写任务代码的时候响应中断
+            List<Runnable> waitToExecuteTaskList = CPUExecutor.shutdownNow();
+            //2.处理提交了未执行的任务，一般情况不会出现
+//            for (Runnable runnable : waitToExecuteTaskList) {
+//
+//            }
+        }
     }
 
     private File createImageFile(PictureType type) throws IOException {
@@ -690,6 +740,7 @@ public class recognition extends AppCompatActivity {
         String imageFileName = Long.valueOf(System.currentTimeMillis()).toString();
         File storageDir =
                 getExternalFilesDir(Environment.DIRECTORY_PICTURES + "/" +
+                        getString(R.string.CameraFolderName) + "/" +
                         getString((type == PictureType.Original) ? R.string.OriginalFolderName : R.string.SampleFolderName));
         File image = File.createTempFile(
                 imageFileName,  /* prefix */
@@ -719,7 +770,7 @@ public class recognition extends AppCompatActivity {
                 photoFile = createImageFile(type);
             } catch (IOException ex) {
                 // Error occurred while creating the File
-                backgroundedToast(R.string.textFailToLoadImage, Toast.LENGTH_LONG);
+                backgroundedToast(R.string.textFailToSaveImage, Toast.LENGTH_LONG);
             }
             // Continue only if the File was successfully created
             if (photoFile != null) {
@@ -740,11 +791,14 @@ public class recognition extends AppCompatActivity {
 
         TextView text = layout.findViewById(R.id.textToast);
         text.setText(msg);
-
-        Toast toast = new Toast(getApplicationContext());
-        toast.setDuration(time);
+        if (toast == null)
+            toast = new Toast(this);
         toast.setView(layout);
-        toast.show();
+        toast.setDuration(time);
+        toast.cancel();
+        mHandler.postDelayed(() -> {
+            toast.show();   // 会发现延迟之后就显示出来了
+        }, 20);  // 这个时间是自己拍脑袋写的，不影响体验就好，试过使用post也不行
     }
 
     private enum PictureType {Original, Sample}

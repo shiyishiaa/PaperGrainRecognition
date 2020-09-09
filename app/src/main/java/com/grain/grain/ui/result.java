@@ -1,6 +1,5 @@
 package com.grain.grain.ui;
 
-import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
@@ -34,30 +33,26 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.StringDef;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.grain.grain.PaperGrainDBHelper;
 import com.grain.grain.R;
+import com.grain.grain.io.Columns;
+import com.grain.grain.io.PaperGrainDBHelper;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static com.grain.grain.Columns.COLUMN_NAME_DELETED;
-import static com.grain.grain.Columns.COLUMN_NAME_MATCH_0;
-import static com.grain.grain.Columns.COLUMN_NAME_ORIGINAL;
-import static com.grain.grain.Columns.COLUMN_NAME_SAMPLE;
-import static com.grain.grain.Columns.COLUMN_NAME_TIME_START;
-import static com.grain.grain.Columns.TABLE_NAME;
-import static com.grain.grain.Columns._COUNT;
-import static com.grain.grain.Columns._ID;
+import static com.grain.grain.io.Columns.COLUMN_NAME_DELETED;
+import static com.grain.grain.io.Columns.COLUMN_NAME_TIME_START;
+import static com.grain.grain.io.Columns.TABLE_NAME;
+import static com.grain.grain.io.Columns._COUNT;
+import static com.grain.grain.io.Columns._ID;
 
 public class result extends AppCompatActivity {
     private TextView textHistory, textGroup;
@@ -74,12 +69,14 @@ public class result extends AppCompatActivity {
     @SuppressWarnings("FieldCanBeLocal")
     private float xEnd = 0;
     private History history;
-    private String originalPath, samplePath, matchPath;
+    private String originalPath, samplePath, SURFResult;
 
     private Animator currentAnimator;
     private int shortAnimationDuration;
     private boolean mBackKeyPressed = false;
     private SharedPreferences Config;
+    private String originalResult;
+    private String sampleResult;
 
     private static String fileName(String path) {
         String[] split = path.split("/");
@@ -96,9 +93,10 @@ public class result extends AppCompatActivity {
 
     private void initialize() {
         connect();
+        readConfig();
         initializeMenuBar();
         initializeSpinner();
-        updateImageView();
+        updateImage();
     }
 
     @Override
@@ -133,47 +131,40 @@ public class result extends AppCompatActivity {
         editor.apply();
     }
 
-    private void updateImageView() {
+    private void updateImage() {
         try {
-            SQLiteDatabase database = history.getDatabase();
-            String sql = "SELECT " +
-                    _COUNT + "," +
-                    COLUMN_NAME_ORIGINAL + "," +
-                    COLUMN_NAME_SAMPLE +
-                    " FROM " +
-                    TABLE_NAME +
-                    " WHERE " +
-                    COLUMN_NAME_DELETED + "=" + 0;
-            Cursor cursor = database.rawQuery(sql, null);
-            if (cursor.getCount() == 0) {
-                imgBtnOriginal.setImageBitmap(null);
-                imgBtnSample.setImageBitmap(null);
-                imgBtnMatch.setImageBitmap(null);
-                originalPath = samplePath = matchPath = null;
-                return;
-            }
+            StringBuilder builder = new StringBuilder();
+            final int position = spinnerGroup.getSelectedItemPosition();
+            builder.append("SELECT ")
+                    .append(Columns.COLUMN_NAME_SURF_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
+                    .append(",")
+                    .append(Columns.COLUMN_NAME_ORIGINAL_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
+                    .append(",")
+                    .append(Columns.COLUMN_NAME_SAMPLE_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
+                    .append(" FROM ")
+                    .append(TABLE_NAME)
+                    .append(" WHERE ")
+                    .append(_COUNT).append("=").append(spinnerHistory.getSelectedItemPosition() + 1);
+            Cursor cursor = history.getDatabase().rawQuery(String.valueOf(builder), null);
             if (cursor.moveToFirst()) {
-                int position = spinnerHistory.getSelectedItemPosition();
-                int index = 0;
-                do {
-                    if (position == index) {
-                        originalPath = cursor.getString(1);
-                        samplePath = cursor.getString(2);
-                        break;
-                    }
-                    index++;
-                } while (cursor.moveToNext());
+                SURFResult = cursor.getString(0);
+                originalResult = cursor.getString(1);
+                sampleResult = cursor.getString(2);
             }
             cursor.close();
-
-            String originalName = "Original(" + fileName(originalPath) + ")";
-            String sampleName = "Sample(" + fileName(originalPath) + ")";
-
-            labelOriginalPicture.setText(originalName);
-            labelSamplePicture.setText(sampleName);
-
-            runOnUiThread(() -> setImageView(imgBtnOriginal, originalPath));
-            runOnUiThread(() -> setImageView(imgBtnSample, samplePath));
+            if (SURFResult != null)
+                runOnUiThread(() -> setImageView(imgBtnMatch, SURFResult));
+            else
+                imgBtnMatch.setImageBitmap(null);
+            if (originalResult != null) {
+                runOnUiThread(() -> setImageView(imgBtnOriginal, originalResult));
+            } else
+                imgBtnOriginal.setImageBitmap(null);
+            if (sampleResult != null) {
+                String finalSample = sampleResult;
+                runOnUiThread(() -> setImageView(imgBtnSample, sampleResult));
+            } else
+                imgBtnSample.setImageBitmap(null);
         } catch (NullPointerException ignored) {
         }
     }
@@ -255,19 +246,19 @@ public class result extends AppCompatActivity {
         labelSamplePicture = findViewById(R.id.labelSamplePicture);
 
         imgBtnOriginal = findViewById(R.id.imgBtnOriginal);
-        imgBtnOriginal.setOnClickListener(v -> zoomImageFromThumb(imgBtnOriginal, originalPath));
+        imgBtnOriginal.setOnClickListener(v -> zoomImageFromThumb(imgBtnOriginal, originalResult));
 
         imgBtnSample = findViewById(R.id.imgBtnSample);
-        imgBtnSample.setOnClickListener(v -> zoomImageFromThumb(imgBtnSample, samplePath));
+        imgBtnSample.setOnClickListener(v -> zoomImageFromThumb(imgBtnSample, sampleResult));
 
         imgBtnMatch = findViewById(R.id.imgBtnMatch);
-        imgBtnMatch.setOnClickListener(v -> zoomImageFromThumb(imgBtnMatch, matchPath));
+        imgBtnMatch.setOnClickListener(v -> zoomImageFromThumb(imgBtnMatch, SURFResult));
 
         btnDelete = findViewById(R.id.btnDelete);
         btnDelete.setOnClickListener(v -> {
             if (spinnerHistory.isEnabled()) {
                 spinnerHistory.setAdapter(history.delete(spinnerHistory.getSelectedItemPosition()));
-                updateImageView();
+                updateImage();
             } else
                 backgroundedToast(R.string.textEmptyDatabase, Toast.LENGTH_SHORT);
         });
@@ -282,7 +273,10 @@ public class result extends AppCompatActivity {
                         SQLiteDatabase.deleteDatabase(getDatabasePath(PaperGrainDBHelper.DATABASE_NAME));
                         spinnerHistory.setEnabled(false);
                         spinnerHistory.setAdapter(new SimpleCursorAdapter(result.this, R.layout.spinner, null, null, null, 0));
-                        updateImageView();
+
+                        imgBtnMatch.setImageBitmap(null);
+                        imgBtnOriginal.setImageBitmap(null);
+                        imgBtnSample.setImageBitmap(null);
                     })
                     .setNegativeButton(R.string.textCancel, (dialog, which) -> dialog.dismiss())
                     .show();
@@ -298,6 +292,8 @@ public class result extends AppCompatActivity {
 
         history = new History(this, SQLiteDatabase.openOrCreateDatabase(this.getDatabasePath(PaperGrainDBHelper.DATABASE_NAME), null));
         shortAnimationDuration = getResources().getInteger(android.R.integer.config_shortAnimTime);
+
+        Config = getSharedPreferences("Config", MODE_PRIVATE);
     }
 
     private void zoomImageFromThumb(final View thumbView, String imagePath) {
@@ -437,7 +433,7 @@ public class result extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 spinnerGroup.setEnabled(true);
-                updateImageView();
+                updateImage();
             }
 
             @Override
@@ -450,25 +446,7 @@ public class result extends AppCompatActivity {
 
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                try {
-                    StringBuilder builder = new StringBuilder();
-                    builder.append("SELECT ")
-                            .append(COLUMN_NAME_MATCH_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
-                            .append(" FROM ")
-                            .append(TABLE_NAME)
-                            .append(" WHERE ")
-                            .append(_COUNT).append("=").append(spinnerHistory.getSelectedItemPosition() + 1);
-                    Cursor cursor = history.getDatabase().rawQuery(String.valueOf(builder), null);
-                    if (cursor.moveToFirst())
-                        matchPath = cursor.getString(0);
-                    cursor.close();
-                    if (matchPath != null)
-                        runOnUiThread(() -> setImageView(imgBtnMatch, matchPath));
-                    else
-                        imgBtnMatch.setImageResource(android.R.color.transparent);
-                } catch (NullPointerException ignored) {
-
-                }
+                updateImage();
             }
 
             @Override
@@ -495,18 +473,6 @@ public class result extends AppCompatActivity {
         ResultLayout.setBackgroundColor(this.getColor(R.color.AlphaGray));
     }
 
-    private void showSSIM() {
-        //TODO Display SSIM value.
-    }
-
-    private void showResult() {
-        //TODO Show the matching result.
-    }
-
-    private void showMatchPicture() {
-        //TODO Show the matching picture.
-    }
-
     private void backgroundedToast(@StringRes int msg, @DisplayTime int time) {
         LayoutInflater inflater = getLayoutInflater();
         View layout = inflater.inflate(R.layout.toast, findViewById(R.id.custom_toast_container));
@@ -520,13 +486,6 @@ public class result extends AppCompatActivity {
         toast.show();
     }
 
-    private enum PictureType {Original, Sample}
-
-    @StringDef({Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE})
-    @Retention(RetentionPolicy.SOURCE)
-    private @interface Permission {
-    }
-
     @IntDef({Toast.LENGTH_LONG, Toast.LENGTH_SHORT})
     @Retention(RetentionPolicy.SOURCE)
     private @interface DisplayTime {
@@ -534,7 +493,6 @@ public class result extends AppCompatActivity {
 
     private class History {
         private Context context;
-        private int size;
         private String[] name;
         private SimpleCursorAdapter adapter;
         private SQLiteDatabase database;
@@ -553,8 +511,7 @@ public class result extends AppCompatActivity {
                         _COUNT;
                 Cursor cursor = database.rawQuery(sql, null);
                 this.context = context;
-                this.size = cursor.getCount();
-                this.name = new String[this.size];
+                this.name = new String[cursor.getCount()];
                 if (cursor.moveToFirst()) {
                     int index = 0;
                     do {
@@ -582,22 +539,6 @@ public class result extends AppCompatActivity {
 
         private void updateOrderAfterDelete() {
             PaperGrainDBHelper.updateCount(database);
-        }
-
-        public String[] getPrefixedName() {
-            String[] prefixedName = new String[size];
-            for (int i = 0; i < name.length; i++) {
-                StringBuilder builder = new StringBuilder();
-                prefixedName[i] = String.valueOf(
-                        builder.append(String.format(Locale.getDefault(), "%03d", i + 1))
-                                .append(" - ")
-                                .append(name[i]));
-            }
-            return prefixedName;
-        }
-
-        public int getSize() {
-            return size;
         }
 
         public String[] getName() {

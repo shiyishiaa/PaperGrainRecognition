@@ -167,14 +167,14 @@
                     android:textSize="18sp" />
 
                 <Button
-                    android:id="@+id/btnStop"
+                    android:id="@+id/btAbort"
                     style="?android:attr/buttonBarButtonStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="30dp"
                     android:layout_weight="1"
                     android:background="@drawable/red_background"
-                    android:text="@string/btnStop"
+                    android:text="@string/btnAbort"
                     android:textColor="@color/White"
                     android:textSize="18sp" />
             </LinearLayout>

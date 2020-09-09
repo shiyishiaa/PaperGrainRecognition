@@ -11,7 +11,7 @@
     <string name="descRecognition">Choose picture</string>
     <string name="descResult">Generate result</string>
     <string name="btnStart">Start</string>
-    <string name="btnStop">Stop</string>
+    <string name="btnAbort">Abort</string>
     <string name="switchBluetooth">Bluetooth</string>
     <string name="textConnectionStatus">Connection Status</string>
     <string name="textConnecting">Connecting</string>
@@ -36,7 +36,7 @@
     <string name="textUnexpectedError">Unexpected Error</string>
     <string name="textDisconnecting">Disconnecting</string>
     <string name="SampleFolderName" translatable="false">Sample</string>
-    <string name="textFailToLoadImage">Fail to load image!</string>
+    <string name="textFailToSaveImage">Fail to save image!</string>
     <string name="textAfterDenying">Please allow needed permission, or it will not work!</string>
     <string name="textReadExternalStorageGranted">Read External Storage Granted</string>
     <string name="textWriteExternalStorageGranted">Write External Storage Granted</string>
@@ -65,4 +65,10 @@
     <string name="textWrongPicture">Pictures sizes unmatch!</string>
     <string name="textProcessing">Pictures Processing!</string>
     <string name="textProcessDone">Process is done!</string>
+    <string name="CameraFolderName" translatable="false">Camera</string>
+    <string name="ResultFolderName" translatable="false">Result</string>
+    <string name="textProcessAborted">Process is aborted!</string>
+    <string name="textNotProcessing">Process was not started!</string>
+    <string name="textProcessAborting">Start aborting!</string>
+    <string name="SURFFolderName" translatable="false">SURF</string>
 </resources>

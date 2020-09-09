@@ -1,4 +1,4 @@
-package com.grain.grain;
+package com.grain.grain.io;
 
 import android.content.ContentUris;
 import android.content.Context;

@@ -1,0 +1,53 @@
+package com.grain.grain.io;
+
+import android.provider.BaseColumns;
+
+public interface Columns extends BaseColumns {
+    String TABLE_NAME = "grain";
+    String COLUMN_NAME_ORIGINAL = "original";
+    String COLUMN_NAME_SAMPLE = "sample";
+    String COLUMN_NAME_TIME_START = "time_start";
+    String COLUMN_NAME_TIME_END = "time_end";
+    String COLUMN_NAME_SURF_0 = "surf_0";
+    String COLUMN_NAME_SURF_1 = "surf_1";
+    String COLUMN_NAME_SURF_2 = "surf_2";
+    String COLUMN_NAME_SURF_3 = "surf_3";
+    String COLUMN_NAME_SURF_4 = "surf_4";
+    String COLUMN_NAME_SURF_5 = "surf_5";
+    String COLUMN_NAME_SURF_6 = "surf_6";
+    String COLUMN_NAME_SURF_7 = "surf_7";
+    String COLUMN_NAME_SURF_8 = "surf_8";
+    String COLUMN_NAME_SURF_9 = "surf_9";
+    String COLUMN_NAME_SAMPLE_0 = "sample_0";
+    String COLUMN_NAME_SAMPLE_1 = "sample_1";
+    String COLUMN_NAME_SAMPLE_2 = "sample_2";
+    String COLUMN_NAME_SAMPLE_3 = "sample_3";
+    String COLUMN_NAME_SAMPLE_4 = "sample_4";
+    String COLUMN_NAME_SAMPLE_5 = "sample_5";
+    String COLUMN_NAME_SAMPLE_6 = "sample_6";
+    String COLUMN_NAME_SAMPLE_7 = "sample_7";
+    String COLUMN_NAME_SAMPLE_8 = "sample_8";
+    String COLUMN_NAME_SAMPLE_9 = "sample_9";
+    String COLUMN_NAME_ORIGINAL_0 = "original_0";
+    String COLUMN_NAME_ORIGINAL_1 = "original_1";
+    String COLUMN_NAME_ORIGINAL_2 = "original_2";
+    String COLUMN_NAME_ORIGINAL_3 = "original_3";
+    String COLUMN_NAME_ORIGINAL_4 = "original_4";
+    String COLUMN_NAME_ORIGINAL_5 = "original_5";
+    String COLUMN_NAME_ORIGINAL_6 = "original_6";
+    String COLUMN_NAME_ORIGINAL_7 = "original_7";
+    String COLUMN_NAME_ORIGINAL_8 = "original_8";
+    String COLUMN_NAME_ORIGINAL_9 = "original_9";
+    String COLUMN_NAME_SSIM_0 = "SSIM_0";
+    String COLUMN_NAME_SSIM_1 = "SSIM_1";
+    String COLUMN_NAME_SSIM_2 = "SSIM_2";
+    String COLUMN_NAME_SSIM_3 = "SSIM_3";
+    String COLUMN_NAME_SSIM_4 = "SSIM_4";
+    String COLUMN_NAME_SSIM_5 = "SSIM_5";
+    String COLUMN_NAME_SSIM_6 = "SSIM_6";
+    String COLUMN_NAME_SSIM_7 = "SSIM_7";
+    String COLUMN_NAME_SSIM_8 = "SSIM_8";
+    String COLUMN_NAME_SSIM_9 = "SSIM_9";
+    String COLUMN_NAME_FINISHED = "finished";
+    String COLUMN_NAME_DELETED = "deleted";
+}

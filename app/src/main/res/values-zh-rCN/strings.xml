@@ -12,7 +12,7 @@
     <string name="descRecognition">选择图片</string>
     <string name="descResult">生成结果</string>
     <string name="btnStart">开始</string>
-    <string name="btnStop">停止</string>
+    <string name="btnAbort">中止</string>
     <string name="switchBluetooth">蓝牙</string>
     <string name="textConnectionStatus">配对状态</string>
     <string name="textConnecting">配对中</string>
@@ -35,7 +35,7 @@
     <string name="textBluetoothStatus">蓝牙状态</string>
     <string name="textUnexpectedError">意外错误</string>
     <string name="textDisconnecting">解除配对中</string>
-    <string name="textFailToLoadImage">加载图片失败！</string>
+    <string name="textFailToSaveImage">储存图片失败！</string>
     <string name="textAfterDenying">请允许相关权限，否则无法正常使用本应用！</string>
     <string name="textReadExternalStorageGranted">读取外部存储已授权</string>
     <string name="textReadExternalStorageDenied">读取外部存储未授权</string>
@@ -63,4 +63,7 @@
     <string name="textWrongPicture">图片尺寸不匹配！</string>
     <string name="textProcessing">图片处理中！</string>
     <string name="textProcessDone">处理完成！</string>
+    <string name="textProcessAborted">处理中断！</string>
+    <string name="textProcessAborting">中断开始！</string>
+    <string name="textNotProcessing">处理未开始！</string>
 </resources>
