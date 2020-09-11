@@ -176,6 +176,8 @@ public class recognition extends AppCompatActivity {
                 backgroundedToast(R.string.textProcessDone, Toast.LENGTH_SHORT);
                 for (MatchUtils util : utils)
                     Log.i("SSIM Values", String.valueOf(util.getSSIMValue()));
+//                for (MatchUtils util : utils)
+//                    Log.i("PSNR Values", String.valueOf(util.getPSNRValue()));
                 Log.i("Time cost", Math.abs(
                         dateFormat.parse(start, new ParsePosition(0)).getTime() -
                                 dateFormat.parse(end, new ParsePosition(0)).getTime()) + " ms");
@@ -313,6 +315,7 @@ public class recognition extends AppCompatActivity {
                     @Override
                     public void run() {
                         mBackKeyPressed = false;
+                        finish();
                     }
                 }, 2000);
                 return true;

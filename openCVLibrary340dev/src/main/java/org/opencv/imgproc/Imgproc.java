@@ -407,7 +407,7 @@ public class Imgproc {
             MARKER_SQUARE = 4,
             MARKER_TRIANGLE_UP = 5,
             MARKER_TRIANGLE_DOWN = 6;
-    private static final int
+    public static final int
             IPL_BORDER_CONSTANT = 0,
             IPL_BORDER_REPLICATE = 1,
             IPL_BORDER_REFLECT = 2,

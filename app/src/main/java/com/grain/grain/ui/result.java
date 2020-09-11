@@ -48,8 +48,6 @@ import java.io.File;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import static com.grain.grain.io.Columns.COLUMN_NAME_DELETED;
 import static com.grain.grain.io.Columns.COLUMN_NAME_TIME_START;
@@ -69,19 +67,14 @@ public class result extends AppCompatActivity {
     // xStart stores the location where swipe gesture starts.
     private float xStart = 0;
     // xEnd stores the location where swipe gesture ends.
-    @SuppressWarnings("FieldCanBeLocal")
     private float xEnd = 0;
     private History history;
-    private String originalPath, samplePath, SURFResult;
 
     private Animator currentAnimator;
     private int shortAnimationDuration;
-    private boolean mBackKeyPressed = false;
     private SharedPreferences Config;
-    private String originalResult;
-    private String sampleResult;
+    private String originalResult, sampleResult, SURFResult;
 
-    @SuppressWarnings("UnusedReturnValue")
     public static boolean deleteRecursive(File fileOrDirectory) {
         if (fileOrDirectory.isDirectory())
             for (File child : Objects.requireNonNull(fileOrDirectory.listFiles()))
@@ -99,56 +92,49 @@ public class result extends AppCompatActivity {
 
     private void initialize() {
         connect();
-        readConfig();
         initializeMenuBar();
         initializeSpinner();
+        applyConfig();
         updateImage();
     }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
-            if (!mBackKeyPressed) {
-                backgroundedToast(R.string.textOneMoreClickToExit, Toast.LENGTH_SHORT);
-                writeConfig();
-                mBackKeyPressed = true;
-                new Timer().schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        mBackKeyPressed = false;
-                    }
-                }, 2000);
-                return true;
-            } else
-                finish();
+            writeConfig();
+            this.finish();
         }
         return super.onKeyDown(keyCode, event);
     }
 
-    private void readConfig() {
-        originalPath = Config.getString("originalPath", null);
-        samplePath = Config.getString("samplePath", null);
+    private void applyConfig() {
+        try {
+            if (spinnerHistory.getAdapter().getCount() != 0)
+                spinnerHistory.setSelection(spinnerHistory.getAdapter().getCount() - 1);
+        } catch (NullPointerException e) {
+            try {
+                int position = Config.getInt("spinnerHistoryPosition", spinnerHistory.getAdapter().getCount() - 1);
+                spinnerHistory.setSelection(position);
+            } catch (NullPointerException ignored) {
+            }
+        }
     }
 
     private void writeConfig() {
         SharedPreferences.Editor editor = Config.edit();
-        editor.putString("originalPath", originalPath);
-        editor.putString("samplePath", samplePath);
+        editor.putInt("spinnerHistoryPosition", spinnerHistory.getSelectedItemPosition());
         editor.apply();
     }
 
     private void updateImage() {
         try {
             StringBuilder builder = new StringBuilder();
-            final int position = spinnerGroup.getSelectedItemPosition();
-            builder.append("SELECT ")
-                    .append(Columns.COLUMN_NAME_SURF_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
-                    .append(",")
-                    .append(Columns.COLUMN_NAME_ORIGINAL_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
-                    .append(",")
-                    .append(Columns.COLUMN_NAME_SAMPLE_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
-                    .append(",")
-                    .append(Columns.COLUMN_NAME_SSIM_0).replace(builder.length() - 1, builder.length(), String.valueOf(position))
+            String position = String.valueOf(spinnerGroup.getSelectedItemPosition());
+            builder.append(" SELECT ")
+                    .append(Columns.COLUMN_NAME_SURF_0).replace(builder.length() - 1, builder.length(), position).append(",")
+                    .append(Columns.COLUMN_NAME_ORIGINAL_0).replace(builder.length() - 1, builder.length(), position).append(",")
+                    .append(Columns.COLUMN_NAME_SAMPLE_0).replace(builder.length() - 1, builder.length(), position).append(",")
+                    .append(Columns.COLUMN_NAME_SSIM_0).replace(builder.length() - 1, builder.length(), position)
                     .append(" FROM ")
                     .append(TABLE_NAME)
                     .append(" WHERE ")
@@ -458,15 +444,12 @@ public class result extends AppCompatActivity {
 
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (spinnerHistory.getAdapter().getCount() != 0)
-                    spinnerHistory.setSelection(spinnerHistory.getAdapter().getCount() - 1);
                 spinnerGroup.setEnabled(true);
                 updateImage();
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-
             }
         });
 
@@ -479,7 +462,6 @@ public class result extends AppCompatActivity {
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-
             }
         });
         spinnerGroup.setEnabled(false);
@@ -527,7 +509,7 @@ public class result extends AppCompatActivity {
 
         History(Context context, SQLiteDatabase database) {
             try {
-                String sql = "SELECT " +
+                String sql = " SELECT " +
                         _ID + "," + _COUNT + "," + COLUMN_NAME_TIME_START +
                         " FROM " +
                         TABLE_NAME +
