@@ -4,7 +4,9 @@
       <w>imgproc</w>
       <w>lossless</w>
       <w>mssim</w>
+      <w>otsu</w>
       <w>posi</w>
+      <w>psnr</w>
       <w>seekbar</w>
       <w>ssim</w>
       <w>submat</w>

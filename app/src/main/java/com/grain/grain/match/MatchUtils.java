@@ -10,7 +10,6 @@ import org.opencv.android.Utils;
 import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Core;
 import org.opencv.core.CvException;
-import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
@@ -35,6 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+import static java.lang.Float.MAX_VALUE;
 import static org.opencv.core.Core.absdiff;
 import static org.opencv.core.Core.add;
 import static org.opencv.core.Core.divide;
@@ -42,6 +42,9 @@ import static org.opencv.core.Core.mean;
 import static org.opencv.core.Core.multiply;
 import static org.opencv.core.Core.subtract;
 import static org.opencv.core.CvType.CV_32F;
+import static org.opencv.core.CvType.CV_32FC2;
+import static org.opencv.core.CvType.CV_8U;
+import static org.opencv.core.CvType.CV_8UC3;
 import static org.opencv.imgcodecs.Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE;
 import static org.opencv.imgcodecs.Imgcodecs.imread;
 import static org.opencv.imgproc.Imgproc.COLOR_GRAY2RGBA;
@@ -49,12 +52,14 @@ import static org.opencv.imgproc.Imgproc.COLOR_RGB2BGRA;
 import static org.opencv.imgproc.Imgproc.GaussianBlur;
 import static org.opencv.imgproc.Imgproc.calcHist;
 import static org.opencv.imgproc.Imgproc.cvtColor;
+import static org.opencv.imgproc.Imgproc.getRotationMatrix2D;
 import static org.opencv.imgproc.Imgproc.line;
 import static org.opencv.imgproc.Imgproc.threshold;
+import static org.opencv.imgproc.Imgproc.warpAffine;
 
 public class MatchUtils extends Thread {
-    public Bitmap originalBMP, sampleBMP, surfBMP;
-    private Double SSIMValue, PSNRValue;
+    public Bitmap originalBMP, sampleBMP, surfBMP, tempBMP;
+    private Double MSSIMValue, SSIMValue, PSNRValue;
     private String original, sample, start, end;
 
     public MatchUtils(String _original, String _sample) {
@@ -159,7 +164,7 @@ public class MatchUtils extends Thread {
 
     public static Bitmap matToBitmap(Mat mat) {
         Bitmap bmp = null;
-        Mat canvas = new Mat(mat.rows(), mat.cols(), CvType.CV_8U, new Scalar(4));
+        Mat canvas = new Mat(mat.rows(), mat.cols(), CV_8U, new Scalar(4));
         try {
             if (mat.channels() == 3)// RGB picture
                 cvtColor(mat, canvas, COLOR_RGB2BGRA);
@@ -175,8 +180,6 @@ public class MatchUtils extends Thread {
     public static Mat[] surf(Mat imgObject, Mat imgScene) {
         Mat imgObjectCopy = imgObject.clone();
         Mat imgSceneCopy = imgScene.clone();
-        Bitmap bitmap1 = matToBitmap(imgObjectCopy);
-        Bitmap bitmap2 = matToBitmap(imgSceneCopy);
         //-- 步骤1：使用SURF Detector检测关键点，计算描述符
         double hessianThreshold = 400;
         int nOctaves = 4;
@@ -188,6 +191,9 @@ public class MatchUtils extends Thread {
         Mat descriptorsScene = new Mat();
         detector.detectAndCompute(imgObject, new Mat(), keyPointsObject, descriptorsObject);
         detector.detectAndCompute(imgScene, new Mat(), keyPointsScene, descriptorsScene);
+
+        //matchFeature(descriptorsObject, descriptorsScene, 0.9f);
+
         //-- 步骤2：将描述符向量与基于FLANN的匹配器进行匹配 由于SURF是浮点描述符，因此使用NORM_L2
         DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.FLANNBASED);
         List<MatOfDMatch> knnMatches = new ArrayList<>();
@@ -235,7 +241,7 @@ public class MatchUtils extends Thread {
         double ransacReprojThreshold = 3.0;
         Mat H = Calib3d.findHomography(objMat, sceneMat, Calib3d.RANSAC, ransacReprojThreshold);
         //-- 从image_1（要“检测”的对象）获取角
-        Mat objCorners = new Mat(4, 1, CvType.CV_32FC2), sceneCorners = new Mat();
+        Mat objCorners = new Mat(4, 1, CV_32FC2), sceneCorners = new Mat();
         // obj的左上、右上、左下、右下
         float[] objCornersData = new float[(int) (objCorners.total() * objCorners.channels())];
         objCorners.get(0, 0, objCornersData);
@@ -265,7 +271,7 @@ public class MatchUtils extends Thread {
                 index = i;
         }
 
-        Mat matchedObj = new Mat(), matchedScene = new Mat();
+        Mat matchedObj, matchedScene;
         Point scenePoint = new Point(), objPoint = new Point();
         if (index != -1) {
             scenePoint = scenePoints[index];
@@ -325,7 +331,7 @@ public class MatchUtils extends Thread {
         calcHist(bgrPlanes, new MatOfInt(2), new Mat(), rHist, new MatOfInt(histSize), histRange, false);
         int histW = 512, histH = 400;
         int binW = (int) Math.round((double) histW / histSize);
-        Mat histImage = new Mat(histH, histW, CvType.CV_8UC3, new Scalar(0, 0, 0));
+        Mat histImage = new Mat(histH, histW, CV_8UC3, new Scalar(0, 0, 0));
         Core.normalize(bHist, bHist, 0, histImage.rows(), Core.NORM_MINMAX);
         Core.normalize(gHist, gHist, 0, histImage.rows(), Core.NORM_MINMAX);
         Core.normalize(rHist, rHist, 0, histImage.rows(), Core.NORM_MINMAX);
@@ -351,7 +357,7 @@ public class MatchUtils extends Thread {
         int histSize = 256;
         int histW = 512, histH = 400;
         int binW = (int) Math.round((double) histW / histSize);
-        Mat histImage = new Mat(histH, histW, CvType.CV_8UC3, new Scalar(0, 0, 0));
+        Mat histImage = new Mat(histH, histW, CV_8UC3, new Scalar(0, 0, 0));
         Core.normalize(hist, hist, 0, histImage.rows(), Core.NORM_MINMAX);
         float[] histData = new float[(int) (hist.total() * hist.channels())];
         hist.get(0, 0, histData);
@@ -480,7 +486,7 @@ public class MatchUtils extends Thread {
         int size = src.rows();
         int plotW = 512, plotH = 400;
         int binW = (int) Math.round((double) plotW / size);
-        Mat smoothImage = new Mat(plotH, plotW, CvType.CV_8UC3, new Scalar(0, 0, 0));
+        Mat smoothImage = new Mat(plotH, plotW, CV_8UC3, new Scalar(0, 0, 0));
         Core.normalize(smooth, smooth, -smoothImage.rows(), smoothImage.rows(), Core.NORM_MINMAX);
         float[] smoothData = new float[(int) (smooth.total() * smooth.channels())];
         smooth.get(0, 0, smoothData);
@@ -527,7 +533,7 @@ public class MatchUtils extends Thread {
 
         add(diff, new Scalar(plotH / 2.0), diff);
         int binW = (int) Math.round((double) plotW / size);
-        Mat diffImage = new Mat(plotH, plotW, CvType.CV_8UC3, new Scalar(0, 0, 0));
+        Mat diffImage = new Mat(plotH, plotW, CV_8UC3, new Scalar(0, 0, 0));
 
         float[] diffData = new float[(int) (diff.total() * diff.channels())];
         diff.get(0, 0, diffData);
@@ -566,24 +572,24 @@ public class MatchUtils extends Thread {
         return maximum;
     }
 
-    private static void printMat(Mat mat) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("\n");
+    private synchronized static void printMat(String TAG, Mat mat) {
         for (int i = 0; i < mat.height(); i++) {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append("\n");
             for (int j = 0; j < mat.width(); j++) {
                 stringBuilder.append(Arrays.toString(mat.get(i, j)))
                         .append("\t");
             }
             stringBuilder.append("\n");
+            Log.i(TAG, String.valueOf(stringBuilder));
         }
-        Log.i("Mat", String.valueOf(stringBuilder));
     }
 
     public static double whitePercent(Mat mat) {
         double count = 0, sum = mat.cols() * mat.rows();
         for (int i = 0; i < mat.height(); i++) {
             for (int j = 0; j < mat.width(); j++) {
-                if (mat.get(i, j)[0] == 255)
+                if (mat.get(i, j)[0] != 0)
                     count++;
             }
         }
@@ -614,17 +620,17 @@ public class MatchUtils extends Thread {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private static void matchFeature(Mat descA, Mat descB, @FloatRange(from = 0.0, to = 1.0) float ratio) {
+    private static Mat[] matchFeature(Mat descA, Mat descB, @FloatRange(from = 0.0, to = 1.0) float ratio) {
         // Number of descriptors for each image
         int NoDescA = descA.height(), NoDescB = descB.height();
 
         // Vector that holds the mapping between the descriptors
-        Mat mapping = new Mat(NoDescA, 1, CvType.CV_8U);
-        Mat D = new Mat(NoDescA, NoDescB, CvType.CV_8U);
-        Mat HistB = new Mat(1, NoDescB, CvType.CV_8U);
+        Mat mapping = new Mat(NoDescA, 1, CV_32F);
+        Mat D = new Mat(NoDescA, NoDescB, CV_32F);
+        Mat HistB = new Mat(1, NoDescB, CV_32F);
 
         for (int i = 0; i < NoDescA; i++) {
-            Mat d = new Mat(NoDescB, 1, CvType.CV_8U);
+            Mat d = new Mat(NoDescB, 1, CV_32F);
             Mat rowA = rowAt(descA, i);
             for (int j = 0; j < NoDescB; j++) {
                 // Calculate normalized correlations of each descriptor from the
@@ -636,50 +642,149 @@ public class MatchUtils extends Thread {
             }
             Mat dst = d.clone();
             divide(dst, new Scalar(getNorm(rowA)), dst);
-            Mat acosd = acos(dst);
-            D = putRowAt(D, transpose(acosd), i);
+            Mat acos = acos(dst);
+            D = putRowAt(D, acos.t(), i);
 
-            Mat min = min(acosd);
-            acosd = putRowAt(acosd, all(1, acosd.width(), Integer.MAX_VALUE), rowAt(min, 1));
+            Mat min_1 = min(acos); // best
+            double sd1 = min_1.get(0, 0)[0];
+            int index1 = (int) min_1.get(1, 0)[0];
+
+            acos = putRowAt(acos, all(1, acos.width(), MAX_VALUE), rowAt(min_1, 1));
+
+            Mat min_2 = min(acos); // second best
+            double sd2 = min_2.get(0, 0)[0];
+            int index2 = (int) min_2.get(1, 0)[0];
+
+            // If best< ratio*second_best => match is accepted
+            if (d.get(index2, 0)[0] > 0
+                    && sd1 / sd2 < ratio) {
+                // counts of correspondences with index1
+                HistB.put(0, index1, HistB.get(0, index1)[0] + 1);
+                // save only single matches here
+                mapping.put(i, 0, index1);
+            }
         }
+
+        // indices from descB with duplicate matches
+        Mat multiIndB = find(HistB, 1, Find.More);
+
+        // when duplicates do an inverse mapping
+        if (!multiIndB.empty())
+            for (int i = 0; i < multiIndB.width(); i++) {
+                boolean[] multiMap = equals(mapping, multiIndB.get(0, i)[0]);
+                assign(mapping, 0, multiMap);
+                int newIndexA = (int) min(colAt(D, (int) multiIndB.get(0, i)[0])).get(1, 0)[0];
+                // check availability
+                if (rowAt(mapping, newIndexA).get(0, 0)[0] == 0)
+                    mapping.put(newIndexA, 0, multiIndB.get(0, i)[0]);
+            }
+
+        Mat IndexA = find(mapping, 0, Find.More);
+        Mat IndexB = get(mapping, IndexA);
+
+        Mat numMatches = new Mat(1, 1, CV_8U);
+        numMatches.put(0, 0, IndexA.height());
+
+        return new Mat[]{mapping, numMatches, IndexA, IndexB};
+    }
+
+    public static boolean[] equals(Mat src, double d) {
+        boolean[] dst = new boolean[src.height()];
+        for (int i = 0; i < src.height(); i++) {
+            dst[i] = src.get(i, 0)[0] == d;
+        }
+        return dst;
+    }
+
+    public static Mat get(Mat src, Mat index) throws CvException {
+        Mat dst = new Mat(index.height(), 1, src.type());
+        for (int i = 0; i < index.height(); i++)
+            for (int j = 0; j < src.height(); j++)
+                if (index.get(i, 0)[0] == j) {
+                    dst.put(i, 0, src.get(j, 0));
+                    break;
+                }
+        return dst;
+    }
+
+    private static void assign(Mat dst, double value, boolean[] booleans) throws CvException {
+        if (dst.height() != booleans.length)
+            throw new CvException("Mismatched matrices and arrays!");
+        for (int i = 0; i < dst.height(); i++)
+            if (booleans[i])
+                dst.put(i, 0, value);
     }
 
     public static Mat all(int row, int col, double d) {
-        Mat dst = new Mat(row, col, CvType.CV_8U);
+        Mat dst = new Mat(row, col, CV_32F);
         for (int i = 0; i < dst.height(); i++)
             for (int j = 0; j < dst.width(); j++)
                 dst.put(i, j, d);
         return dst;
     }
 
+    public static Mat find(Mat src, double d, Find find) {
+        Mat dst = new Mat(1, 0, src.type());
+        switch (find) {
+            case Less:
+                for (int i = 0; i < src.width(); i++) {
+                    if (src.get(0, i)[0] < d) {
+                        extend(dst);
+                        src.put(0, src.width() - 1, i);
+                    }
+                }
+                break;
+            case More:
+                for (int i = 0; i < src.width(); i++) {
+                    if (src.get(0, i)[0] > d) {
+                        extend(dst);
+                        src.put(0, src.width() - 1, i);
+                    }
+                }
+                break;
+            case Equal:
+                for (int i = 0; i < src.width(); i++) {
+                    if (src.get(0, i)[0] == d) {
+                        extend(dst);
+                        src.put(0, src.width() - 1, i);
+                    }
+                }
+                break;
+        }
+        return dst;
+    }
+
+    public static Mat extend(Mat src) {
+        Mat dst = new Mat(src.rows(), src.cols() + 1, src.type());
+        for (int j = 0; j < src.width(); j++) {
+            putColAt(dst, colAt(src, j), j);
+        }
+        for (int i = 0; i < src.height(); i++)
+            dst.put(i, dst.width(), 0);
+        return dst;
+    }
+
     public static Mat putRowAt(Mat src, Mat row, Mat index) throws CvException {
-        Size size = new Size(1, src.width());
+        Size size = new Size(src.width(), 1);
         if (!row.size().equals(size) || !index.size().equals(size))
             throw new CvException("Illegal row or index!");
         Mat dst = src.clone();
-        for (int j = 0; j < src.width(); j++)
-            for (int i = 0; i < src.height(); i++)
+        for (int j = 0; j < dst.width(); j++)
+            for (int i = 0; i < dst.height(); i++)
                 if (index.get(0, j)[0] == i) {
-                    dst.put(i, j, row.get(i, j));
+                    dst.put(i, j, row.get(0, j));
                     break;
                 }
         return dst;
     }
 
-    public static Mat transpose(Mat src) {
-        Mat dst = new Mat();
-        dst.create(src.size(), src.type());
-        Mat map_x = new Mat();
-        Mat map_y = new Mat();
-        map_x.create(src.size(), CvType.CV_32FC1);
-        map_y.create(src.size(), CvType.CV_32FC1);
-        for (int i = 0; i < src.rows(); ++i) {
-            for (int j = 0; j < src.cols(); ++j) {
-                map_x.put(i, j, i);
-                map_y.put(i, j, j);
-            }
-        }
-        Imgproc.remap(src, dst, map_x, map_y, Imgproc.CV_INTER_LINEAR);
+    public static Mat putColAt(Mat dst, Mat col, int at) throws CvException {
+        if (at < 0 || at > dst.height()) throw new CvException("Index out of bound!");
+        if (col.height() != 0) throw new CvException("Illegal column!");
+        for (int j = 0; j < dst.width(); j++)
+            if (j == at)
+                for (int i = 0; i < dst.height(); i++)
+                    dst.put(i, j, dst.get(i, j));
         return dst;
     }
 
@@ -692,7 +797,7 @@ public class MatchUtils extends Thread {
     }
 
     public static Mat colAt(Mat src, int at) {
-        return transpose(rowAt(transpose(src), at));
+        return rowAt(src.t(), at).t();
     }
 
     /**
@@ -746,8 +851,8 @@ public class MatchUtils extends Thread {
         dst[0] = min;
         dst[1] = 0;
         for (int i = 0; i < src.height(); i++)
-            if (src.get(0, i)[0] < min) {
-                dst[0] = src.get(0, i)[0];
+            if (src.get(i, 0)[0] < min) {
+                dst[0] = src.get(i, 0)[0];
                 dst[1] = i;
             }
         return dst;
@@ -755,7 +860,7 @@ public class MatchUtils extends Thread {
 
     public static Mat putRowAt(Mat src, Mat row, int at) throws CvException {
         if (at < 0 || at > src.height()) throw new CvException("Index out of bound!");
-        if (row.height() != 0) throw new CvException("Illegal row!");
+        if (row.height() != 1) throw new CvException("Illegal row!");
         for (int i = 0; i < src.height(); i++)
             if (i == at)
                 for (int j = 0; j < src.width(); j++)
@@ -779,12 +884,133 @@ public class MatchUtils extends Thread {
     }
 
     public static double getDot(Mat srcA, Mat srcB) throws CvException {
-        if (srcA.size().equals(srcB.size()))
+        if (!srcA.size().equals(srcB.size()))
             throw new CvException("Mat size is not equivalent.");
         double sum = 0;
         for (int i = 0; i < srcA.width(); i++)
             sum += srcA.get(0, i)[0] * srcB.get(0, i)[0];
         return sum;
+    }
+
+    /**
+     * Get rotated image according to the given angle.
+     *
+     * @param src   Source Image.
+     * @param angle Rotation angle in degrees. Positive values mean counter-clockwise rotation (the coordinate origin is assumed to be the top-left corner).
+     * @return Rotated Image.
+     */
+    public static Mat getRotate(Mat src, double angle) {
+        Point center = new Point(src.cols() / 2.0, src.rows() / 2.0);
+        Mat affine_matrix = getRotationMatrix2D(center, angle, 1.0);//求得旋转矩阵
+        Mat dst = new Mat();
+        warpAffine(src, dst, affine_matrix, src.size());
+        return dst;
+    }
+
+    private static Mat binary(Mat src, double threshold, double maxValue) {
+        Mat dst = src.clone();
+        for (int i = 0; i < dst.height(); i++)
+            for (int j = 0; j < dst.width(); j++)
+                if (dst.get(i, j)[0] >= threshold)
+                    dst.put(i, j, maxValue);
+                else
+                    dst.put(i, j, 0);
+        return dst;
+    }
+
+    private static Mat keepBlack(Mat src) {
+        Mat dst = src.clone();
+        for (int i = 0; i < dst.height(); i++)
+            for (int j = 0; j < dst.width(); j++)
+                if (dst.get(i, j)[0] != 0)
+                    dst.put(i, j, 255);
+        return dst;
+    }
+
+    private static double minOverlapping(Mat mat1, Mat mat2) {
+        // In degree.
+        final double minOpenAngle = 10, angleStep = 1;
+        double minPercentage = 1;
+        double minAngle = 90;
+        Bitmap bitmap;
+        Mat minMat = new Mat();
+        Mat rotate;
+        for (int i = 0; i <= minOpenAngle; i += angleStep) {
+            double angle = -minOpenAngle / 2.0 + i;
+            rotate = getRotate(mat2, angle);
+            rotate = keepBlack(rotate);
+            rotate.convertTo(rotate, CV_32F);
+            subtract(mat1, rotate, rotate, new Mat(), CV_32F);
+            rotate = abs(rotate);
+            if (whitePercent(rotate) < minPercentage) {
+                minPercentage = whitePercent(rotate);
+                rotate.convertTo(minMat, CV_8U);
+                minAngle = angle;
+            }
+        }
+        rotate = getRotate(mat2, minAngle);
+        rotate = keepBlack(rotate);
+
+        final double minDisplacementX = mat2.cols() / 50.0, xStep = 1;
+        Mat xDis;
+        double minX = 0;
+        for (int i = 0; i <= minDisplacementX; i += xStep) {
+            double x = -minDisplacementX / 2.0 + i;
+            xDis = getDisplacement(rotate, x, 0);
+            xDis.convertTo(xDis, CV_32F);
+            subtract(mat1, xDis, xDis, new Mat(), CV_32F);
+            xDis = abs(xDis);
+            if (whitePercent(xDis) < minPercentage) {
+                minPercentage = whitePercent(xDis);
+                xDis.convertTo(minMat, CV_8U);
+                minX = x;
+            }
+        }
+
+        final double minDisplacementY = mat2.rows() / 50.0, YStep = 1;
+        Mat YDis;
+        double minY = 0;
+        for (int i = 0; i <= minDisplacementY; i += YStep) {
+            double Y = -minDisplacementY / 2.0 + i;
+            YDis = getDisplacement(rotate, Y, 0);
+            YDis.convertTo(YDis, CV_32F);
+            subtract(mat1, YDis, YDis, new Mat(), CV_32F);
+            YDis = abs(YDis);
+            if (whitePercent(YDis) < minPercentage) {
+                minPercentage = whitePercent(YDis);
+                YDis.convertTo(minMat, CV_8U);
+                minY = Y;
+            }
+        }
+
+        bitmap=matToBitmap(minMat);
+
+        return minPercentage;
+    }
+
+    public static Mat getDisplacement(Mat src, double x, double y) {
+        Mat affine = new Mat(2, 3, CV_32F);
+        affine.put(0, 0, 1);
+        affine.put(1, 1, 1);
+        affine.put(0, 2, x);
+        affine.put(1, 2, y);
+
+        Mat dst = new Mat(src.rows(), src.cols(), src.type());
+        warpAffine(src, dst, affine, src.size());
+        return dst;
+    }
+
+    public static Mat abs(Mat src) {
+        Mat dst = src.clone();
+        for (int i = 0; i < dst.height(); i++)
+            for (int j = 0; j < dst.width(); j++)
+                if (dst.get(i, j)[0] < 0)
+                    dst.put(i, j, Math.abs(dst.get(i, j)[0]));
+        return dst;
+    }
+
+    public Double getSSIMValue() {
+        return SSIMValue;
     }
 
     public String[] getPath() {
@@ -807,8 +1033,8 @@ public class MatchUtils extends Thread {
         this.end = end;
     }
 
-    public Double getSSIMValue() {
-        return SSIMValue;
+    public Double getMSSIMValue() {
+        return MSSIMValue;
     }
 
     public Double getPSNRValue() {
@@ -839,14 +1065,24 @@ public class MatchUtils extends Thread {
                 threshold0 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[0]), 3));
                 //threshold1 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[1]), 3));
             } while (threshold0 == -1); //|| threshold1 == -1);
+            // DO NOT use Otsu method.
             threshold(regions[0], binary[0], threshold0, 255, Imgproc.THRESH_BINARY);
             threshold(regions[1], binary[1], threshold0, 255, Imgproc.THRESH_BINARY);
+//            binary[0] = binary(regions[0], threshold0, 255);
+//            binary[1] = binary(regions[1], threshold0, 255);
         } while (whitePercent(binary[0]) >= 0.95 || whitePercent(binary[1]) >= 0.95);
         Mat[] matched = surf(binary[0], binary[1]);
         surfBMP = matToBitmap(matched[0]);
         originalBMP = matToBitmap(matched[1]);
         sampleBMP = matToBitmap(matched[2]);
+        MSSIMValue = getSSIM(matched[1], matched[2]).val[0];
         SSIMValue = getSSIM(matched[1], matched[2]).val[0];
         PSNRValue = getPSNR(matched[1], matched[2]);
+        matched[1] = keepBlack(matched[1]);
+        matched[2] = keepBlack(matched[2]);
+
+        Log.i("Min Overlapping", String.valueOf(minOverlapping(matched[1], matched[2])));
     }
+
+    public enum Find {More, Less, Equal}
 }

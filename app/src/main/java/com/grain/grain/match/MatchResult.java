@@ -76,7 +76,7 @@ public class MatchResult extends Thread {
                 values.put("sample_" + i, sample.getAbsolutePath());
                 values.put("surf_" + i, SURF.getAbsolutePath());
 
-                values.put("SSIM_" + i, utils[i].getSSIMValue());
+                values.put("SSIM_" + i, utils[i].getMSSIMValue());
 
                 saveBitmap(utils[i].originalBMP, original);
                 saveBitmap(utils[i].sampleBMP, sample);
@@ -101,7 +101,7 @@ public class MatchResult extends Thread {
         final double target = 10.0, lowest = 3.0;
         double ruler = 7.0;
         for (MatchUtils util : utils) {
-            ruler += getWeight(util.getSSIMValue());
+            ruler += getWeight(util.getMSSIMValue());
             if (ruler >= target)
                 result = true;
             else if (ruler <= lowest)

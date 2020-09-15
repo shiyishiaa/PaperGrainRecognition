@@ -96,14 +96,14 @@ public class recognition extends AppCompatActivity {
     private static final ThreadPoolExecutor CPUExecutor = new ThreadPoolExecutor(
             NUMBER_OF_CORES + 1,
             2 * NUMBER_OF_CORES,
-            5,
+            10,
             TimeUnit.MINUTES,
             new ArrayBlockingQueue<>(10),
             new ThreadPoolExecutor.DiscardOldestPolicy());
     private static final ThreadPoolExecutor IOExecutor = new ThreadPoolExecutor(
             2 * NUMBER_OF_CORES + 1,
             3 * NUMBER_OF_CORES,
-            5,
+            10,
             TimeUnit.MINUTES,
             new ArrayBlockingQueue<>(10),
             new ThreadPoolExecutor.DiscardOldestPolicy());
@@ -174,8 +174,10 @@ public class recognition extends AppCompatActivity {
                 end = dateFormat.format(Calendar.getInstance().getTime());
                 updateEndTime(end.substring(0, end.length() - 4));
                 backgroundedToast(R.string.textProcessDone, Toast.LENGTH_SHORT);
-                for (MatchUtils util : utils)
-                    Log.i("SSIM Values", String.valueOf(util.getSSIMValue()));
+//                for (MatchUtils util : utils)
+//                    Log.i("MSSIM Values", String.valueOf(util.getMSSIMValue()));
+//                for (MatchUtils util : utils)
+//                    Log.i("SSIM Values", String.valueOf(util.getSSIMValue()));
 //                for (MatchUtils util : utils)
 //                    Log.i("PSNR Values", String.valueOf(util.getPSNRValue()));
                 Log.i("Time cost", Math.abs(
