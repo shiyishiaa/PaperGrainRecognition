@@ -1058,9 +1058,9 @@ public class MatchUtils extends Thread {
         originalBMP = matToBitmap(matched[1]);
         sampleBMP = matToBitmap(matched[2]);
 
-        MSSIMValue = getMSSIM(matched[1], matched[2]).val[0];
-        SSIMValue = getSSIM(matched[1], matched[2]).val[0];
-        PSNRValue = getPSNR(matched[1], matched[2]);
+//        MSSIMValue = getMSSIM(matched[1], matched[2]).val[0];
+//        SSIMValue = getSSIM(matched[1], matched[2]).val[0];
+//        PSNRValue = getPSNR(matched[1], matched[2]);
     }
 
 
