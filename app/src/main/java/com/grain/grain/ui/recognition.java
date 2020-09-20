@@ -29,6 +29,8 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -43,10 +45,12 @@ import androidx.annotation.StringDef;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import com.grain.grain.R;
 import com.grain.grain.io.FileUtils;
+import com.grain.grain.match.CutEdge;
 import com.grain.grain.match.MatchResult;
 import com.grain.grain.match.MatchUtils;
 
@@ -91,7 +95,9 @@ public class recognition extends AppCompatActivity {
             ABORT_MATCHING = 0xDD01,
             MATCH_FINISHED = 0xDD02,
             MATCH_ABORTED = 0xDD03,
-            WRITE_FINISHED = 0xDD04;
+            WRITE_FINISHED = 0xDD04,
+            ORIGINAL_CUT_FINISHED = 0xDD05,
+            SAMPLE_CUT_FINISHED = 0xDD06;
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors();
     private static final ThreadPoolExecutor CPUExecutor = new ThreadPoolExecutor(
             NUMBER_OF_CORES + 1,
@@ -134,16 +140,48 @@ public class recognition extends AppCompatActivity {
             }
         }
     };
+    private Animation loadAnimation;
     private boolean mBackKeyPressed;
     private Animator currentAnimator;
     private int shortAnimationDuration;
-    private Handler pathHandler = new Handler(msg -> {
+    private CutEdge originalNoEdge, sampleNoEdge;
+    private Bitmap ori, sap;
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS", Locale.CHINA);
+    private Handler pathHandler = new Handler(Looper.getMainLooper(), msg -> {
         switch (msg.what) {
             case ORIGINAL_CHANGED:
+                runOnUiThread(() -> {
+                            imgBtnOriginal.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.loading));
+                            imgBtnOriginal.setAnimation(loadAnimation);
+                            imgBtnOriginal.setPadding(
+                                    (int) (imgBtnOriginal.getWidth() * 0.4),
+                                    (int) (imgBtnOriginal.getHeight() * 0.4),
+                                    (int) (imgBtnOriginal.getWidth() * 0.4),
+                                    (int) (imgBtnOriginal.getHeight() * 0.4));
+                            imgBtnOriginal.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                        }
+                );
+                originalNoEdge = new CutEdge(originalPath);
+                CPUExecutor.execute(originalNoEdge);
+                autoCheckOriginalCutStatus();
                 for (MatchUtils util : utils)
                     util.setOriginal(originalPath);
                 return true;
             case SAMPLE_CHANGED:
+                runOnUiThread(() -> {
+                            imgBtnSample.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.loading));
+                            imgBtnSample.setAnimation(loadAnimation);
+                            imgBtnSample.setPadding(
+                                    (int) (imgBtnSample.getWidth() * 0.4),
+                                    (int) (imgBtnSample.getHeight() * 0.4),
+                                    (int) (imgBtnSample.getWidth() * 0.4),
+                                    (int) (imgBtnSample.getHeight() * 0.4));
+                            imgBtnSample.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                        }
+                );
+                sampleNoEdge = new CutEdge(samplePath);
+                CPUExecutor.execute(sampleNoEdge);
+                autoCheckSampleCutStatus();
                 for (MatchUtils util : utils)
                     util.setSample(samplePath);
                 return true;
@@ -151,14 +189,32 @@ public class recognition extends AppCompatActivity {
                 for (int i = 0; i < utils.length; i++)
                     utils[i] = new MatchUtils(originalPath, samplePath);
                 return true;
+            case ORIGINAL_CUT_FINISHED:
+                runOnUiThread(() -> {
+                    imgBtnOriginal.setAnimation(null);
+                    imgBtnOriginal.setPadding(0, 0, 0, 0);
+                    imgBtnOriginal.setImageBitmap(originalNoEdge.noEdge);
+                });
+                ori = originalNoEdge.noEdge;
+                for (MatchUtils util : utils)
+                    util.setOriginalMat(originalNoEdge.getCut());
+                return true;
+            case SAMPLE_CUT_FINISHED:
+                runOnUiThread(() -> {
+                    imgBtnSample.setAnimation(null);
+                    imgBtnSample.setPadding(0, 0, 0, 0);
+                    imgBtnSample.setImageBitmap(sampleNoEdge.noEdge);
+                });
+                sap = sampleNoEdge.noEdge;
+                for (MatchUtils util : utils)
+                    util.setSampleMat(sampleNoEdge.getCut());
+                return true;
             default:
                 return false;
         }
     });
-    private Handler mHandler = new Handler(Looper.getMainLooper());
-
-    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS", Locale.CHINA);
-    private Handler matchHandler = new Handler(msg -> {
+    private Handler toastHandler = new Handler(Looper.getMainLooper());
+    private Handler matchHandler = new Handler(Looper.getMainLooper(), msg -> {
         switch (msg.what) {
             default:
                 return false;
@@ -190,6 +246,8 @@ public class recognition extends AppCompatActivity {
                 return true;
             case WRITE_FINISHED:
                 backgroundedToast(R.string.WriteDone, Toast.LENGTH_SHORT);
+                for (MatchUtils util : utils)
+                    Log.i("CW-SSIM Values", String.valueOf(util.getCW_SSIMValue()));
                 return true;
             case MATCH_ABORTED:
                 end = dateFormat.format(Calendar.getInstance().getTime());
@@ -205,11 +263,22 @@ public class recognition extends AppCompatActivity {
         return message;
     }
 
-    private static Message createMessage(int msg, Object obj) {
-        Message message = new Message();
-        message.what = msg;
-        message.obj = obj;
-        return message;
+    private void autoCheckSampleCutStatus() {
+        pathHandler.postDelayed(() -> {
+            if (CPUExecutor.getActiveCount() == 0)
+                pathHandler.sendMessage(createMessage(SAMPLE_CUT_FINISHED));
+            else
+                autoCheckSampleCutStatus();
+        }, 1000);
+    }
+
+    private void autoCheckOriginalCutStatus() {
+        pathHandler.postDelayed(() -> {
+            if (CPUExecutor.getActiveCount() == 0)
+                pathHandler.sendMessage(createMessage(ORIGINAL_CUT_FINISHED));
+            else
+                autoCheckOriginalCutStatus();
+        }, 1000);
     }
 
     private void autoCheckWritingStatus() {
@@ -340,17 +409,15 @@ public class recognition extends AppCompatActivity {
     }
 
     private void applyConfig() {
+        pathHandler.sendMessage(createMessage(INITIAL_MATCH));
         if (originalPath != null)
             if (new File(originalPath).exists()) {
-                runOnUiThread(() -> setImageView(imgBtnOriginal, originalPath));
+                pathHandler.sendMessage(createMessage(ORIGINAL_CHANGED));
             }
         if (samplePath != null)
             if (new File(samplePath).exists()) {
-                runOnUiThread(() -> setImageView(imgBtnSample, samplePath));
+                pathHandler.sendMessage(createMessage(SAMPLE_CHANGED));
             }
-        Message msg = new Message();
-        msg.what = INITIAL_MATCH;
-        pathHandler.sendMessage(msg);
     }
 
     /**
@@ -405,22 +472,22 @@ public class recognition extends AppCompatActivity {
         if (resultCode == Activity.RESULT_OK) {
             switch (requestCode) {
                 case REQUEST_ORIGINAL_CAMERA:
-                    runOnUiThread(() -> setImageView(imgBtnOriginal, originalPath));
+                    pathHandler.sendMessage(createMessage(ORIGINAL_CHANGED));
                     break;
                 case REQUEST_SAMPLE_CAMERA:
-                    runOnUiThread(() -> setImageView(imgBtnSample, samplePath));
+                    pathHandler.sendMessage(createMessage(SAMPLE_CHANGED));
                     break;
                 case REQUEST_ORIGINAL_IMAGE:
                     FileUtils originalFileUtils = new FileUtils(this);
                     originalPath = originalFileUtils.getPath(data.getData());
                     pathChanged(PictureType.Original);
-                    runOnUiThread(() -> setImageView(imgBtnOriginal, originalPath));
+                    pathHandler.sendMessage(createMessage(ORIGINAL_CHANGED));
                     break;
                 case REQUEST_SAMPLE_IMAGE:
                     FileUtils sampleFileUtils = new FileUtils(this);
                     samplePath = sampleFileUtils.getPath(data.getData());
                     pathChanged(PictureType.Sample);
-                    runOnUiThread(() -> setImageView(imgBtnSample, samplePath));
+                    pathHandler.sendMessage(createMessage(SAMPLE_CHANGED));
                     break;
             }
         }
@@ -458,8 +525,6 @@ public class recognition extends AppCompatActivity {
 
     private void initialize() {
         connect();
-        readConfig();
-        applyConfig();
 
         checkPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
         checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -525,9 +590,9 @@ public class recognition extends AppCompatActivity {
         });
 
         imgBtnOriginal = findViewById(R.id.imgBtnOriginal);
-        imgBtnOriginal.setOnClickListener(v -> runOnUiThread(() -> zoomImageFromThumb(imgBtnOriginal, originalPath)));
+        imgBtnOriginal.setOnClickListener(v -> runOnUiThread(() -> zoomImage(imgBtnOriginal, ori)));
         imgBtnSample = findViewById(R.id.imgBtnSample);
-        imgBtnSample.setOnClickListener(v -> runOnUiThread(() -> zoomImageFromThumb(imgBtnSample, samplePath)));
+        imgBtnSample.setOnClickListener(v -> runOnUiThread(() -> zoomImage(imgBtnSample, sap)));
 
         menuBtnBrightness = findViewById(R.id.imBtnBrightness);
         menuBtnRecognition = findViewById(R.id.imBtnRecognition);
@@ -541,9 +606,13 @@ public class recognition extends AppCompatActivity {
 
         Config = getSharedPreferences("Config", MODE_PRIVATE);
         shortAnimationDuration = getResources().getInteger(android.R.integer.config_shortAnimTime);
+        loadAnimation = AnimationUtils.loadAnimation(this, R.anim.loading);
+
+        readConfig();
+        applyConfig();
     }
 
-    private void zoomImageFromThumb(final View thumbView, String imagePath) {
+    private void zoomImage(final View thumbView, Bitmap bitmap) {
         // If there's an animation in progress, cancel it
         // immediately and proceed with this one.
         if (currentAnimator != null) {
@@ -552,8 +621,7 @@ public class recognition extends AppCompatActivity {
 
         // Load the high-resolution "zoomed-in" image.
         final ImageView expandedImageView = findViewById(R.id.expanded_image);
-        Bitmap bm = BitmapFactory.decodeFile(imagePath);
-        expandedImageView.setImageBitmap(bm);
+        expandedImageView.setImageBitmap(bitmap);
 
         // Calculate the starting and ending bounds for the zoomed-in image.
         // This step involves lots of math. Yay, math.
@@ -836,7 +904,7 @@ public class recognition extends AppCompatActivity {
         toast.setView(layout);
         toast.setDuration(time);
         toast.cancel();
-        mHandler.postDelayed(() -> {
+        toastHandler.postDelayed(() -> {
             toast.show();   // 会发现延迟之后就显示出来了
         }, 20);  // 这个时间是自己拍脑袋写的，不影响体验就好，试过使用post也不行
     }

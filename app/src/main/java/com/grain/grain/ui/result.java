@@ -57,7 +57,7 @@ import static com.grain.grain.io.Columns._ID;
 
 public class result extends AppCompatActivity {
     private TextView textHistory, textGroup;
-    private TextView textSSIM, textSSIMValue, textMatchResult, textResult;
+    private TextView textSSIM, textCW_SSIMValue, textMatchResult, textResult;
     private TextView labelOriginalPicture, labelSamplePicture;
     private ImageButton imgBtnOriginal, imgBtnSample, imgBtnMatch;
     private ImageButton menuBtnBrightness, menuBtnRecognition, menuBtnResult;
@@ -140,12 +140,12 @@ public class result extends AppCompatActivity {
                     .append(" WHERE ")
                     .append(_COUNT).append("=").append(spinnerHistory.getSelectedItemPosition() + 1);
             Cursor cursor = history.getDatabase().rawQuery(String.valueOf(builder), null);
-            String SSIM = "";
+            String CW_SSIM = "";
             if (cursor.moveToFirst()) {
                 SURFResult = cursor.getString(0);
                 originalResult = cursor.getString(1);
                 sampleResult = cursor.getString(2);
-                SSIM = cursor.getString(3);
+                CW_SSIM = cursor.getString(3);
             }
             cursor.close();
             // Update images.
@@ -162,10 +162,10 @@ public class result extends AppCompatActivity {
             } else
                 imgBtnSample.setImageBitmap(null);
             // Update texts.
-            if (SSIM != null) {
-                textSSIMValue.setText(SSIM);
+            if (CW_SSIM != null) {
+                textCW_SSIMValue.setText(CW_SSIM);
             } else
-                textSSIMValue.setText(null);
+                textCW_SSIMValue.setText(null);
         } catch (NullPointerException ignored) {
         }
     }
@@ -238,8 +238,8 @@ public class result extends AppCompatActivity {
         textGroup = findViewById(R.id.textGroup);
         spinnerGroup = findViewById(R.id.spinnerGroup);
 
-        textSSIM = findViewById(R.id.textSSIM);
-        textSSIMValue = findViewById(R.id.textSSIMValue);
+        textSSIM = findViewById(R.id.textCW_SSIM);
+        textCW_SSIMValue = findViewById(R.id.textSSIMValue);
         textMatchResult = findViewById(R.id.textMatchResult);
         textResult = findViewById(R.id.textResult);
 
@@ -285,7 +285,7 @@ public class result extends AppCompatActivity {
                             imgBtnOriginal.setImageBitmap(null);
                             imgBtnSample.setImageBitmap(null);
 
-                            textSSIMValue.setText(null);
+                            textCW_SSIMValue.setText(null);
                             backgroundedToast(R.string.textClearSucceeded, Toast.LENGTH_SHORT);
                         })
                         .setNegativeButton(R.string.textCancel, (dialog, which) -> dialog.dismiss())

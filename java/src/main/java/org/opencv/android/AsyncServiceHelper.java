@@ -110,7 +110,7 @@ class AsyncServiceHelper
 
                 public void wait_install()
                 {
-                    Log.e(TAG, "Installation was not started! Nothing to wait!");
+                    Log.e(TAG, "Installation was not started! Nothing to loading!");
                 }
             };
 
@@ -127,7 +127,7 @@ class AsyncServiceHelper
                 }
                 public void install()
                 {
-                    Log.e(TAG, "Nothing to install we just wait current installation");
+                    Log.e(TAG, "Nothing to install we just loading current installation");
                 }
                 public void cancel()
                 {
@@ -228,7 +228,7 @@ class AsyncServiceHelper
                                     mUserAppCallback.onManagerConnected(LoaderCallbackInterface.INSTALL_CANCELED);
                                 }
                                 public void wait_install() {
-                                    Log.e(TAG, "Installation was not started! Nothing to wait!");
+                                    Log.e(TAG, "Installation was not started! Nothing to loading!");
                                 }
                             };
 
@@ -243,7 +243,7 @@ class AsyncServiceHelper
                                 }
 
                                 public void install() {
-                                    Log.e(TAG, "Nothing to install we just wait current installation");
+                                    Log.e(TAG, "Nothing to install we just loading current installation");
                                 }
                                 public void cancel()
                                 {

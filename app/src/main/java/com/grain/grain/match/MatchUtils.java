@@ -25,7 +25,6 @@ import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.Features2d;
-import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.xfeatures2d.SURF;
 
@@ -45,8 +44,6 @@ import static org.opencv.core.CvType.CV_32F;
 import static org.opencv.core.CvType.CV_32FC2;
 import static org.opencv.core.CvType.CV_8U;
 import static org.opencv.core.CvType.CV_8UC3;
-import static org.opencv.imgcodecs.Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE;
-import static org.opencv.imgcodecs.Imgcodecs.imread;
 import static org.opencv.imgproc.Imgproc.COLOR_GRAY2RGBA;
 import static org.opencv.imgproc.Imgproc.COLOR_RGB2BGRA;
 import static org.opencv.imgproc.Imgproc.GaussianBlur;
@@ -59,8 +56,9 @@ import static org.opencv.imgproc.Imgproc.warpAffine;
 
 public class MatchUtils extends Thread {
     public Bitmap originalBMP, sampleBMP, surfBMP, tempBMP;
-    private Double MSSIMValue, SSIMValue, PSNRValue;
+    private double MSSIMValue, SSIMValue, PSNRValue, CW_SSIMValue;
     private String original, sample, start, end;
+    private Mat originalMat, sampleMat;
 
     public MatchUtils(String _original, String _sample) {
         if (_original != null)
@@ -572,7 +570,7 @@ public class MatchUtils extends Thread {
         return maximum;
     }
 
-    private synchronized static void printMat(String TAG, Mat mat) {
+    public synchronized static void printMat(String TAG, Mat mat) {
         for (int i = 0; i < mat.height(); i++) {
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append("\n");
@@ -586,14 +584,9 @@ public class MatchUtils extends Thread {
     }
 
     public static double whitePercent(Mat mat) {
-        double count = 0, sum = mat.cols() * mat.rows();
-        for (int i = 0; i < mat.height(); i++) {
-            for (int j = 0; j < mat.width(); j++) {
-                if (mat.get(i, j)[0] != 0)
-                    count++;
-            }
-        }
-        return count / sum;
+        int count, sum = mat.cols() * mat.rows();
+        count = Core.countNonZero(mat);
+        return (double) count / sum;
     }
 
     public static boolean isPointOutOfBoundary(Mat mat, Point point) {
@@ -893,28 +886,17 @@ public class MatchUtils extends Thread {
     }
 
     /**
-     * Get rotated image according to the given angle.
+     * Get rotated image according to the given angle surrounding the central point.
      *
      * @param src   Source Image.
      * @param angle Rotation angle in degrees. Positive values mean counter-clockwise rotation (the coordinate origin is assumed to be the top-left corner).
      * @return Rotated Image.
      */
-    public static Mat getRotate(Mat src, double angle) {
+    public static Mat rotate(Mat src, double angle) {
         Point center = new Point(src.cols() / 2.0, src.rows() / 2.0);
         Mat affine_matrix = getRotationMatrix2D(center, angle, 1.0);//求得旋转矩阵
         Mat dst = new Mat();
         warpAffine(src, dst, affine_matrix, src.size());
-        return dst;
-    }
-
-    private static Mat binary(Mat src, double threshold, double maxValue) {
-        Mat dst = src.clone();
-        for (int i = 0; i < dst.height(); i++)
-            for (int j = 0; j < dst.width(); j++)
-                if (dst.get(i, j)[0] >= threshold)
-                    dst.put(i, j, maxValue);
-                else
-                    dst.put(i, j, 0);
         return dst;
     }
 
@@ -927,7 +909,7 @@ public class MatchUtils extends Thread {
         return dst;
     }
 
-    private static double minOverlapping(Mat mat1, Mat mat2) {
+    private static Bitmap minOverlapping(Mat mat1, Mat mat2) {
         // In degree.
         final double minOpenAngle = 10, angleStep = 1;
         double minPercentage = 1;
@@ -937,18 +919,15 @@ public class MatchUtils extends Thread {
         Mat rotate;
         for (int i = 0; i <= minOpenAngle; i += angleStep) {
             double angle = -minOpenAngle / 2.0 + i;
-            rotate = getRotate(mat2, angle);
+            rotate = rotate(mat2, angle);
             rotate = keepBlack(rotate);
-            rotate.convertTo(rotate, CV_32F);
-            subtract(mat1, rotate, rotate, new Mat(), CV_32F);
-            rotate = abs(rotate);
+            absdiff(mat1, rotate, rotate);
             if (whitePercent(rotate) < minPercentage) {
                 minPercentage = whitePercent(rotate);
-                rotate.convertTo(minMat, CV_8U);
                 minAngle = angle;
             }
         }
-        rotate = getRotate(mat2, minAngle);
+        rotate = rotate(mat2, minAngle);
         rotate = keepBlack(rotate);
 
         final double minDisplacementX = mat2.cols() / 50.0, xStep = 1;
@@ -956,60 +935,46 @@ public class MatchUtils extends Thread {
         double minX = 0;
         for (int i = 0; i <= minDisplacementX; i += xStep) {
             double x = -minDisplacementX / 2.0 + i;
-            xDis = getDisplacement(rotate, x, 0);
-            xDis.convertTo(xDis, CV_32F);
-            subtract(mat1, xDis, xDis, new Mat(), CV_32F);
-            xDis = abs(xDis);
+            xDis = shift(rotate, x, 0);
+            absdiff(mat1, xDis, xDis);
             if (whitePercent(xDis) < minPercentage) {
                 minPercentage = whitePercent(xDis);
-                xDis.convertTo(minMat, CV_8U);
                 minX = x;
             }
         }
+        xDis = shift(rotate, minX, 0);
+        xDis = keepBlack(xDis);
 
-        final double minDisplacementY = mat2.rows() / 50.0, YStep = 1;
-        Mat YDis;
+        final double minDisplacementY = mat2.rows() / 50.0, yStep = 1;
+        Mat yDis;
         double minY = 0;
-        for (int i = 0; i <= minDisplacementY; i += YStep) {
-            double Y = -minDisplacementY / 2.0 + i;
-            YDis = getDisplacement(rotate, Y, 0);
-            YDis.convertTo(YDis, CV_32F);
-            subtract(mat1, YDis, YDis, new Mat(), CV_32F);
-            YDis = abs(YDis);
-            if (whitePercent(YDis) < minPercentage) {
-                minPercentage = whitePercent(YDis);
-                YDis.convertTo(minMat, CV_8U);
-                minY = Y;
+        for (int i = 0; i <= minDisplacementY; i += yStep) {
+            double y = -minDisplacementY / 2.0 + i;
+            yDis = shift(xDis, 0, y);
+            absdiff(mat1, yDis, yDis);
+            if (whitePercent(yDis) < minPercentage) {
+                minPercentage = whitePercent(yDis);
+                minY = y;
             }
         }
+        yDis = shift(xDis, 0, minY);
+        yDis = keepBlack(yDis);
 
-        bitmap=matToBitmap(minMat);
+        bitmap = matToBitmap(yDis);
 
-        return minPercentage;
+        return bitmap;
     }
 
-    public static Mat getDisplacement(Mat src, double x, double y) {
-        Mat affine = new Mat(2, 3, CV_32F);
-        affine.put(0, 0, 1);
-        affine.put(1, 1, 1);
-        affine.put(0, 2, x);
-        affine.put(1, 2, y);
+    public static Mat shift(Mat src, double x, double y) {
+        Mat M = new Mat(2, 3, CV_32F);
+        M.put(0, 0, 1, 0, x, 0, 1, y);
 
         Mat dst = new Mat(src.rows(), src.cols(), src.type());
-        warpAffine(src, dst, affine, src.size());
+        warpAffine(src, dst, M, dst.size());
         return dst;
     }
 
-    public static Mat abs(Mat src) {
-        Mat dst = src.clone();
-        for (int i = 0; i < dst.height(); i++)
-            for (int j = 0; j < dst.width(); j++)
-                if (dst.get(i, j)[0] < 0)
-                    dst.put(i, j, Math.abs(dst.get(i, j)[0]));
-        return dst;
-    }
-
-    public Double getSSIMValue() {
+    public double getSSIMValue() {
         return SSIMValue;
     }
 
@@ -1033,12 +998,16 @@ public class MatchUtils extends Thread {
         this.end = end;
     }
 
-    public Double getMSSIMValue() {
+    public double getMSSIMValue() {
         return MSSIMValue;
     }
 
-    public Double getPSNRValue() {
+    public double getPSNRValue() {
         return PSNRValue;
+    }
+
+    public double getCW_SSIMValue() {
+        return CW_SSIMValue;
     }
 
     public void setOriginal(String original) {
@@ -1049,13 +1018,27 @@ public class MatchUtils extends Thread {
         this.sample = sample;
     }
 
+    public void setOriginalMat(Mat originalMat) {
+        this.originalMat = originalMat;
+    }
+
+    public void setSampleMat(Mat sampleMat) {
+        this.sampleMat = sampleMat;
+    }
+
+    public void setCW_SSIMValue(double CW_SSIMValue) {
+        this.CW_SSIMValue = CW_SSIMValue;
+    }
+
     @Override
     public synchronized void run() {
         match();
     }
 
     private void match() {
-        Mat[] mats = new Mat[]{imread(original, Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE), imread(sample, CV_LOAD_IMAGE_GRAYSCALE)};
+        Mat[] mats = new Mat[]{
+                originalMat.submat(100, originalMat.rows() - 100, 100, originalMat.cols() - 100),
+                sampleMat.submat(100, sampleMat.rows() - 100, 100, sampleMat.cols() - 100)};
         Mat[] regions;
         double threshold0;//, threshold1;
         Mat[] binary = new Mat[]{new Mat(), new Mat()};
@@ -1068,21 +1051,18 @@ public class MatchUtils extends Thread {
             // DO NOT use Otsu method.
             threshold(regions[0], binary[0], threshold0, 255, Imgproc.THRESH_BINARY);
             threshold(regions[1], binary[1], threshold0, 255, Imgproc.THRESH_BINARY);
-//            binary[0] = binary(regions[0], threshold0, 255);
-//            binary[1] = binary(regions[1], threshold0, 255);
         } while (whitePercent(binary[0]) >= 0.95 || whitePercent(binary[1]) >= 0.95);
         Mat[] matched = surf(binary[0], binary[1]);
+
         surfBMP = matToBitmap(matched[0]);
         originalBMP = matToBitmap(matched[1]);
         sampleBMP = matToBitmap(matched[2]);
-        MSSIMValue = getSSIM(matched[1], matched[2]).val[0];
+
+        MSSIMValue = getMSSIM(matched[1], matched[2]).val[0];
         SSIMValue = getSSIM(matched[1], matched[2]).val[0];
         PSNRValue = getPSNR(matched[1], matched[2]);
-        matched[1] = keepBlack(matched[1]);
-        matched[2] = keepBlack(matched[2]);
-
-        Log.i("Min Overlapping", String.valueOf(minOverlapping(matched[1], matched[2])));
     }
+
 
     public enum Find {More, Less, Equal}
 }

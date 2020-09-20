@@ -6,6 +6,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.os.Environment;
 
+import com.chaquo.python.PyObject;
+import com.chaquo.python.Python;
+import com.chaquo.python.android.AndroidPlatform;
 import com.grain.grain.R;
 import com.grain.grain.io.Columns;
 import com.grain.grain.io.PaperGrainDBHelper;
@@ -27,6 +30,7 @@ public class MatchResult extends Thread {
     public MatchResult(Context _context, MatchUtils[] _utils) {
         this.context = _context;
         this.utils = _utils;
+        initPython();
     }
 
     private static double getWeight(double ssim) {
@@ -41,6 +45,12 @@ public class MatchResult extends Thread {
         else
             return errorWeight;
 
+    }
+
+    private void initPython() {
+        if (!Python.isStarted()) {
+            Python.start(new AndroidPlatform(context));
+        }
     }
 
     private void saveBitmap(Bitmap bitmap, File file) throws IOException {
@@ -76,11 +86,12 @@ public class MatchResult extends Thread {
                 values.put("sample_" + i, sample.getAbsolutePath());
                 values.put("surf_" + i, SURF.getAbsolutePath());
 
-                values.put("SSIM_" + i, utils[i].getMSSIMValue());
-
                 saveBitmap(utils[i].originalBMP, original);
                 saveBitmap(utils[i].sampleBMP, sample);
                 saveBitmap(utils[i].surfBMP, SURF);
+
+                utils[i].setCW_SSIMValue(calcCW_SSIMValue(original.getAbsolutePath(), sample.getAbsolutePath()));
+                values.put("SSIM_" + i, utils[i].getCW_SSIMValue());
             }
         values.put(COLUMN_NAME_TIME_START, utils[0].getStart());
         values.put(COLUMN_NAME_TIME_END, utils[0].getEnd());
@@ -91,7 +102,6 @@ public class MatchResult extends Thread {
         write.insert(TABLE_NAME, null, values);
         PaperGrainDBHelper.updateCount(write);
     }
-
 
     public boolean getResult() {
         return result;
@@ -108,6 +118,15 @@ public class MatchResult extends Thread {
                 result = false;
         }
         result = false;
+    }
+
+    public double calcCW_SSIMValue(String img1, String img2) {
+        Python py = Python.getInstance();
+
+        PyObject _SSIM = py.getModule("SSIM");
+        PyObject SSIM = _SSIM.callAttr("SSIM", img1);
+        PyObject cw_ssim_value = SSIM.callAttr("cw_ssim_value", img2);
+        return cw_ssim_value.toDouble();
     }
 
     @Override
