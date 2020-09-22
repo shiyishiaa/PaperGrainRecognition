@@ -15,12 +15,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         python {
-//            // 指定python路径
-//            buildPython "C:/Users/Administrator/AppData/Local/Programs/Python/Python38/python.exe"
-
             pip {
-                install "ssim"
-                install "opencv-python"
                 install "numpy"
                 install "scipy"
                 install "Pillow"

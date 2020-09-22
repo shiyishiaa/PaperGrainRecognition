@@ -50,7 +50,6 @@ import androidx.core.content.FileProvider;
 
 import com.grain.grain.R;
 import com.grain.grain.io.FileUtils;
-import com.grain.grain.match.CutEdge;
 import com.grain.grain.match.MatchResult;
 import com.grain.grain.match.MatchUtils;
 
@@ -144,8 +143,8 @@ public class recognition extends AppCompatActivity {
     private boolean mBackKeyPressed;
     private Animator currentAnimator;
     private int shortAnimationDuration;
-    private CutEdge originalNoEdge, sampleNoEdge;
-    private Bitmap ori, sap;
+    //    private CutEdge originalNoEdge, sampleNoEdge;
+//    private Bitmap ori, sap;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS", Locale.CHINA);
     private Handler pathHandler = new Handler(Looper.getMainLooper(), msg -> {
         switch (msg.what) {
@@ -161,8 +160,8 @@ public class recognition extends AppCompatActivity {
                             imgBtnOriginal.setScaleType(ImageView.ScaleType.FIT_CENTER);
                         }
                 );
-                originalNoEdge = new CutEdge(originalPath);
-                CPUExecutor.execute(originalNoEdge);
+//                originalNoEdge = new CutEdge(originalPath);
+//                CPUExecutor.execute(originalNoEdge);
                 autoCheckOriginalCutStatus();
                 for (MatchUtils util : utils)
                     util.setOriginal(originalPath);
@@ -179,8 +178,8 @@ public class recognition extends AppCompatActivity {
                             imgBtnSample.setScaleType(ImageView.ScaleType.FIT_CENTER);
                         }
                 );
-                sampleNoEdge = new CutEdge(samplePath);
-                CPUExecutor.execute(sampleNoEdge);
+//                sampleNoEdge = new CutEdge(samplePath);
+//                CPUExecutor.execute(sampleNoEdge);
                 autoCheckSampleCutStatus();
                 for (MatchUtils util : utils)
                     util.setSample(samplePath);
@@ -193,21 +192,23 @@ public class recognition extends AppCompatActivity {
                 runOnUiThread(() -> {
                     imgBtnOriginal.setAnimation(null);
                     imgBtnOriginal.setPadding(0, 0, 0, 0);
-                    imgBtnOriginal.setImageBitmap(originalNoEdge.noEdge);
+//                    imgBtnOriginal.setImageBitmap(originalNoEdge.noEdge);
+                    setImageView(imgBtnOriginal, originalPath);
                 });
-                ori = originalNoEdge.noEdge;
-                for (MatchUtils util : utils)
-                    util.setOriginalMat(originalNoEdge.getCut());
+//                ori = originalNoEdge.noEdge;
+//                for (MatchUtils util : utils)
+//                    util.setOriginalMat(originalNoEdge.getCut());
                 return true;
             case SAMPLE_CUT_FINISHED:
                 runOnUiThread(() -> {
                     imgBtnSample.setAnimation(null);
                     imgBtnSample.setPadding(0, 0, 0, 0);
-                    imgBtnSample.setImageBitmap(sampleNoEdge.noEdge);
+//                    imgBtnSample.setImageBitmap(sampleNoEdge.noEdge);
+                    setImageView(imgBtnSample, samplePath);
                 });
-                sap = sampleNoEdge.noEdge;
-                for (MatchUtils util : utils)
-                    util.setSampleMat(sampleNoEdge.getCut());
+//                sap = sampleNoEdge.noEdge;
+//                for (MatchUtils util : utils)
+//                    util.setSampleMat(sampleNoEdge.getCut());
                 return true;
             default:
                 return false;
@@ -590,9 +591,9 @@ public class recognition extends AppCompatActivity {
         });
 
         imgBtnOriginal = findViewById(R.id.imgBtnOriginal);
-        imgBtnOriginal.setOnClickListener(v -> runOnUiThread(() -> zoomImage(imgBtnOriginal, ori)));
+        imgBtnOriginal.setOnClickListener(v -> runOnUiThread(() -> zoomImage(imgBtnOriginal, originalPath)));
         imgBtnSample = findViewById(R.id.imgBtnSample);
-        imgBtnSample.setOnClickListener(v -> runOnUiThread(() -> zoomImage(imgBtnSample, sap)));
+        imgBtnSample.setOnClickListener(v -> runOnUiThread(() -> zoomImage(imgBtnSample, samplePath)));
 
         menuBtnBrightness = findViewById(R.id.imBtnBrightness);
         menuBtnRecognition = findViewById(R.id.imBtnRecognition);
@@ -612,7 +613,7 @@ public class recognition extends AppCompatActivity {
         applyConfig();
     }
 
-    private void zoomImage(final View thumbView, Bitmap bitmap) {
+    private void zoomImage(final View thumbView, final String path) {
         // If there's an animation in progress, cancel it
         // immediately and proceed with this one.
         if (currentAnimator != null) {
@@ -621,7 +622,7 @@ public class recognition extends AppCompatActivity {
 
         // Load the high-resolution "zoomed-in" image.
         final ImageView expandedImageView = findViewById(R.id.expanded_image);
-        expandedImageView.setImageBitmap(bitmap);
+        setImageView(expandedImageView, path);
 
         // Calculate the starting and ending bounds for the zoomed-in image.
         // This step involves lots of math. Yay, math.

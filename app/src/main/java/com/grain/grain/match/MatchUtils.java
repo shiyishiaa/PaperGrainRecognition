@@ -44,6 +44,8 @@ import static org.opencv.core.CvType.CV_32F;
 import static org.opencv.core.CvType.CV_32FC2;
 import static org.opencv.core.CvType.CV_8U;
 import static org.opencv.core.CvType.CV_8UC3;
+import static org.opencv.imgcodecs.Imgcodecs.CV_LOAD_IMAGE_GRAYSCALE;
+import static org.opencv.imgcodecs.Imgcodecs.imread;
 import static org.opencv.imgproc.Imgproc.COLOR_GRAY2RGBA;
 import static org.opencv.imgproc.Imgproc.COLOR_RGB2BGRA;
 import static org.opencv.imgproc.Imgproc.GaussianBlur;
@@ -1010,6 +1012,10 @@ public class MatchUtils extends Thread {
         return CW_SSIMValue;
     }
 
+    public void setCW_SSIMValue(double CW_SSIMValue) {
+        this.CW_SSIMValue = CW_SSIMValue;
+    }
+
     public void setOriginal(String original) {
         this.original = original;
     }
@@ -1026,10 +1032,6 @@ public class MatchUtils extends Thread {
         this.sampleMat = sampleMat;
     }
 
-    public void setCW_SSIMValue(double CW_SSIMValue) {
-        this.CW_SSIMValue = CW_SSIMValue;
-    }
-
     @Override
     public synchronized void run() {
         match();
@@ -1037,8 +1039,9 @@ public class MatchUtils extends Thread {
 
     private void match() {
         Mat[] mats = new Mat[]{
-                originalMat.submat(100, originalMat.rows() - 100, 100, originalMat.cols() - 100),
-                sampleMat.submat(100, sampleMat.rows() - 100, 100, sampleMat.cols() - 100)};
+                imread(original, CV_LOAD_IMAGE_GRAYSCALE),
+                imread(sample, CV_LOAD_IMAGE_GRAYSCALE)
+        };
         Mat[] regions;
         double threshold0;//, threshold1;
         Mat[] binary = new Mat[]{new Mat(), new Mat()};
