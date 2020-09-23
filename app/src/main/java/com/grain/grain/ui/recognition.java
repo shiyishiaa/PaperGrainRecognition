@@ -30,7 +30,6 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -45,7 +44,6 @@ import androidx.annotation.StringDef;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import com.grain.grain.R;
@@ -94,9 +92,7 @@ public class recognition extends AppCompatActivity {
             ABORT_MATCHING = 0xDD01,
             MATCH_FINISHED = 0xDD02,
             MATCH_ABORTED = 0xDD03,
-            WRITE_FINISHED = 0xDD04,
-            ORIGINAL_CUT_FINISHED = 0xDD05,
-            SAMPLE_CUT_FINISHED = 0xDD06;
+            WRITE_FINISHED = 0xDD04;
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors();
     private static final ThreadPoolExecutor CPUExecutor = new ThreadPoolExecutor(
             NUMBER_OF_CORES + 1,
@@ -143,72 +139,22 @@ public class recognition extends AppCompatActivity {
     private boolean mBackKeyPressed;
     private Animator currentAnimator;
     private int shortAnimationDuration;
-    //    private CutEdge originalNoEdge, sampleNoEdge;
-//    private Bitmap ori, sap;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS", Locale.CHINA);
     private Handler pathHandler = new Handler(Looper.getMainLooper(), msg -> {
         switch (msg.what) {
             case ORIGINAL_CHANGED:
-                runOnUiThread(() -> {
-                            imgBtnOriginal.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.loading));
-                            imgBtnOriginal.setAnimation(loadAnimation);
-                            imgBtnOriginal.setPadding(
-                                    (int) (imgBtnOriginal.getWidth() * 0.4),
-                                    (int) (imgBtnOriginal.getHeight() * 0.4),
-                                    (int) (imgBtnOriginal.getWidth() * 0.4),
-                                    (int) (imgBtnOriginal.getHeight() * 0.4));
-                            imgBtnOriginal.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                        }
-                );
-//                originalNoEdge = new CutEdge(originalPath);
-//                CPUExecutor.execute(originalNoEdge);
-                autoCheckOriginalCutStatus();
+                runOnUiThread(() -> setImageView(imgBtnOriginal, originalPath));
                 for (MatchUtils util : utils)
                     util.setOriginal(originalPath);
                 return true;
             case SAMPLE_CHANGED:
-                runOnUiThread(() -> {
-                            imgBtnSample.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.loading));
-                            imgBtnSample.setAnimation(loadAnimation);
-                            imgBtnSample.setPadding(
-                                    (int) (imgBtnSample.getWidth() * 0.4),
-                                    (int) (imgBtnSample.getHeight() * 0.4),
-                                    (int) (imgBtnSample.getWidth() * 0.4),
-                                    (int) (imgBtnSample.getHeight() * 0.4));
-                            imgBtnSample.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                        }
-                );
-//                sampleNoEdge = new CutEdge(samplePath);
-//                CPUExecutor.execute(sampleNoEdge);
-                autoCheckSampleCutStatus();
+                runOnUiThread(() -> setImageView(imgBtnSample, samplePath));
                 for (MatchUtils util : utils)
                     util.setSample(samplePath);
                 return true;
             case INITIAL_MATCH:
                 for (int i = 0; i < utils.length; i++)
                     utils[i] = new MatchUtils(originalPath, samplePath);
-                return true;
-            case ORIGINAL_CUT_FINISHED:
-                runOnUiThread(() -> {
-                    imgBtnOriginal.setAnimation(null);
-                    imgBtnOriginal.setPadding(0, 0, 0, 0);
-//                    imgBtnOriginal.setImageBitmap(originalNoEdge.noEdge);
-                    setImageView(imgBtnOriginal, originalPath);
-                });
-//                ori = originalNoEdge.noEdge;
-//                for (MatchUtils util : utils)
-//                    util.setOriginalMat(originalNoEdge.getCut());
-                return true;
-            case SAMPLE_CUT_FINISHED:
-                runOnUiThread(() -> {
-                    imgBtnSample.setAnimation(null);
-                    imgBtnSample.setPadding(0, 0, 0, 0);
-//                    imgBtnSample.setImageBitmap(sampleNoEdge.noEdge);
-                    setImageView(imgBtnSample, samplePath);
-                });
-//                sap = sampleNoEdge.noEdge;
-//                for (MatchUtils util : utils)
-//                    util.setSampleMat(sampleNoEdge.getCut());
                 return true;
             default:
                 return false;
@@ -258,28 +204,14 @@ public class recognition extends AppCompatActivity {
         }
     });
 
-    private static Message createMessage(int msg) {
+    public recognition(Animation loadAnimation) {
+        this.loadAnimation = loadAnimation;
+    }
+
+    private static Message createEmptyMessage(int msg) {
         Message message = new Message();
         message.what = msg;
         return message;
-    }
-
-    private void autoCheckSampleCutStatus() {
-        pathHandler.postDelayed(() -> {
-            if (CPUExecutor.getActiveCount() == 0)
-                pathHandler.sendMessage(createMessage(SAMPLE_CUT_FINISHED));
-            else
-                autoCheckSampleCutStatus();
-        }, 1000);
-    }
-
-    private void autoCheckOriginalCutStatus() {
-        pathHandler.postDelayed(() -> {
-            if (CPUExecutor.getActiveCount() == 0)
-                pathHandler.sendMessage(createMessage(ORIGINAL_CUT_FINISHED));
-            else
-                autoCheckOriginalCutStatus();
-        }, 1000);
     }
 
     private void autoCheckWritingStatus() {
@@ -287,7 +219,7 @@ public class recognition extends AppCompatActivity {
             if (isWriting())
                 autoCheckWritingStatus();
             else
-                matchHandler.sendMessage(createMessage(WRITE_FINISHED));
+                matchHandler.sendMessage(createEmptyMessage(WRITE_FINISHED));
         }, 1000);
     }
 
@@ -314,7 +246,7 @@ public class recognition extends AppCompatActivity {
     private void autoCheckAbortingStatus() {
         matchHandler.postDelayed(() -> {
             if (!isMatching()) {
-                matchHandler.sendMessage(createMessage(MATCH_ABORTED));
+                matchHandler.sendMessage(createEmptyMessage(MATCH_ABORTED));
             } else
                 autoCheckAbortingStatus();
         }, 1000);
@@ -323,7 +255,7 @@ public class recognition extends AppCompatActivity {
     private void autoCheckMatchingStatus() {
         matchHandler.postDelayed(() -> {
             if (!isMatching()) {
-                matchHandler.sendMessage(createMessage(MATCH_FINISHED));
+                matchHandler.sendMessage(createEmptyMessage(MATCH_FINISHED));
             } else
                 autoCheckMatchingStatus();
         }, 1000);
@@ -410,14 +342,14 @@ public class recognition extends AppCompatActivity {
     }
 
     private void applyConfig() {
-        pathHandler.sendMessage(createMessage(INITIAL_MATCH));
+        pathHandler.sendMessage(createEmptyMessage(INITIAL_MATCH));
         if (originalPath != null)
             if (new File(originalPath).exists()) {
-                pathHandler.sendMessage(createMessage(ORIGINAL_CHANGED));
+                pathHandler.sendMessage(createEmptyMessage(ORIGINAL_CHANGED));
             }
         if (samplePath != null)
             if (new File(samplePath).exists()) {
-                pathHandler.sendMessage(createMessage(SAMPLE_CHANGED));
+                pathHandler.sendMessage(createEmptyMessage(SAMPLE_CHANGED));
             }
     }
 
@@ -473,22 +405,22 @@ public class recognition extends AppCompatActivity {
         if (resultCode == Activity.RESULT_OK) {
             switch (requestCode) {
                 case REQUEST_ORIGINAL_CAMERA:
-                    pathHandler.sendMessage(createMessage(ORIGINAL_CHANGED));
+                    pathHandler.sendMessage(createEmptyMessage(ORIGINAL_CHANGED));
                     break;
                 case REQUEST_SAMPLE_CAMERA:
-                    pathHandler.sendMessage(createMessage(SAMPLE_CHANGED));
+                    pathHandler.sendMessage(createEmptyMessage(SAMPLE_CHANGED));
                     break;
                 case REQUEST_ORIGINAL_IMAGE:
                     FileUtils originalFileUtils = new FileUtils(this);
                     originalPath = originalFileUtils.getPath(data.getData());
                     pathChanged(PictureType.Original);
-                    pathHandler.sendMessage(createMessage(ORIGINAL_CHANGED));
+                    pathHandler.sendMessage(createEmptyMessage(ORIGINAL_CHANGED));
                     break;
                 case REQUEST_SAMPLE_IMAGE:
                     FileUtils sampleFileUtils = new FileUtils(this);
                     samplePath = sampleFileUtils.getPath(data.getData());
                     pathChanged(PictureType.Sample);
-                    pathHandler.sendMessage(createMessage(SAMPLE_CHANGED));
+                    pathHandler.sendMessage(createEmptyMessage(SAMPLE_CHANGED));
                     break;
             }
         }
@@ -496,7 +428,7 @@ public class recognition extends AppCompatActivity {
     }
 
     private void pathChanged(PictureType type) {
-        pathHandler.sendMessage(createMessage(type == PictureType.Original ? ORIGINAL_CHANGED : SAMPLE_CHANGED));
+        pathHandler.sendMessage(createEmptyMessage(type == PictureType.Original ? ORIGINAL_CHANGED : SAMPLE_CHANGED));
     }
 
     @Override
@@ -605,8 +537,6 @@ public class recognition extends AppCompatActivity {
 
         Config = getSharedPreferences("Config", MODE_PRIVATE);
         shortAnimationDuration = getResources().getInteger(android.R.integer.config_shortAnimTime);
-        loadAnimation = AnimationUtils.loadAnimation(this, R.anim.loading);
-
         readConfig();
         applyConfig();
     }
