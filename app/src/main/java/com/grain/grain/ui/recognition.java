@@ -541,7 +541,6 @@ public class recognition extends AppCompatActivity {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 backgroundedToast(R.string.textAllowCamera, Toast.LENGTH_LONG);
                 checkPermission(Manifest.permission.CAMERA);
-
             } else
                 dispatchTakePictureIntent(PictureType.Original);
         });
@@ -566,7 +565,6 @@ public class recognition extends AppCompatActivity {
             imgBtnSample.setImageBitmap(null);
             samplePath = null;
         });
-
 
         btnStart = findViewById(R.id.btnStart);
         btnStart.setOnClickListener(v -> {

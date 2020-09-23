@@ -18,14 +18,21 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/ColorTranslucentTheme">
-        <activity android:name=".ui.recognition">
+        <activity
+            android:name=".ui.recognition"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
-        <activity android:name=".ui.brightness" />
-        <activity android:name=".ui.result" />
+        <activity
+            android:name=".ui.brightness"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ui.result"
+            android:screenOrientation="portrait" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
