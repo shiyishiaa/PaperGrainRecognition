@@ -53,8 +53,8 @@ import androidx.core.content.FileProvider;
 
 import com.grain.grain.R;
 import com.grain.grain.io.FileUtils;
-import com.grain.grain.match.MatchResult;
 import com.grain.grain.match.MatchUtils;
+import com.grain.grain.match.WriteResult;
 
 import org.jetbrains.annotations.NotNull;
 import org.opencv.android.BaseLoaderCallback;
@@ -178,9 +178,9 @@ public class recognition extends AppCompatActivity {
                 Log.i("Match time cost", Math.abs(
                         dateFormat.parse(start, new ParsePosition(0)).getTime() -
                                 dateFormat.parse(end, new ParsePosition(0)).getTime()) + " ms");
-                MatchResult[] result = new MatchResult[14];
+                WriteResult[] result = new WriteResult[14];
                 for (short i = 0; i < result.length; i++) {
-                    result[i] = new MatchResult(this, utils[i], i);
+                    result[i] = new WriteResult(this, utils[i], i);
                     IOExecutor.execute(result[i]);
                 }
                 backgroundedToast(R.string.WriteStart, Toast.LENGTH_SHORT);

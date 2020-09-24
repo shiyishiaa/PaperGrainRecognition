@@ -1,7 +1,12 @@
 package com.grain.grain.match;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
+
+import com.chaquo.python.PyObject;
+import com.chaquo.python.Python;
+import com.chaquo.python.android.AndroidPlatform;
 
 import org.jetbrains.annotations.NotNull;
 import org.opencv.android.Utils;
@@ -57,13 +62,14 @@ public class MatchUtils extends Thread {
     public Bitmap originalBMP, sampleBMP, surfBMP;
     private double MSSIMValue, SSIMValue, PSNRValue, CW_SSIMValue;
     private String original, sample, start, end;
-    private Mat originalMat, sampleMat;
+    private Context context;
 
-    public MatchUtils(String _original, String _sample) {
-        if (_original != null)
-            setOriginal(_original);
-        if (_sample != null)
-            setSample(_sample);
+    public MatchUtils(Context context, String original, String sample) {
+        this.context = context;
+        if (original != null)
+            setOriginal(original);
+        if (sample != null)
+            setSample(sample);
     }
 
     private static double autoGetThreshold(Mat src) {
@@ -83,7 +89,7 @@ public class MatchUtils extends Thread {
         return Math.max(firstX, secondX) - Math.abs(firstX - secondX) / 3;
     }
 
-    public static Scalar getMSSIM(Mat image1, Mat image2) {
+    public static double getMSSIM(Mat image1, Mat image2) {
         Scalar C1 = new Scalar(6.5025), C2 = new Scalar(58.5225);
         int d = CV_32F;
 
@@ -136,10 +142,10 @@ public class MatchUtils extends Thread {
         Mat ssim_map = new Mat();
         divide(t3, t1, ssim_map);      // ssim_map =  t3./t1;
 
-        return mean(ssim_map);
+        return mean(ssim_map).val[0];
     }
 
-    public static Scalar getSSIM(Mat image1, Mat image2) {
+    public static double getSSIM(Mat image1, Mat image2) {
         double ux = mean(image1).val[0], uy = mean(image2).val[0];
 
         subtract(image1, new Scalar(ux), image1);
@@ -156,7 +162,22 @@ public class MatchUtils extends Thread {
         double c = (2 * Math.sqrt(sigma2x) * Math.sqrt(sigma2y) + c2) / (sigma2x + sigma2y + c2);
         double s = (sigmaxy + c3) / (Math.sqrt(sigma2x) * Math.sqrt(sigma2y) + c3);
 
-        return new Scalar(l * c * s);
+        return l * c * s;
+    }
+
+    public static double getPSNR(Mat I1, Mat I2) {
+        Mat s1 = new Mat();
+        absdiff(I1, I2, s1);       // 计算两幅图像差值的绝对值|I1 - I2|
+        s1.convertTo(s1, CV_32F);  // 在进行平方操作之前先加深图像深度
+        s1 = s1.mul(s1);           //对差值绝对值进行求平方 |I1 - I2|^2
+        Scalar s = Core.sumElems(s1);        // 对每个通道的像素值求和
+        double sse = s.val[0] + s.val[1] + s.val[2]; // 三通道的总像素值
+        if (sse <= 1e-10)           //如果两幅图像差值绝对值的平方三通道总和很小，则无差别
+            return 0;
+        else {
+            double mse = sse / (double) (I1.channels() * I1.total());            //均方误差 = 差值平方和 / 总像素数
+            return 10.0 * Math.log10((255.0 * 255.0) / mse);
+        }
     }
 
     public static Bitmap matToBitmap(Mat mat) {
@@ -596,21 +617,6 @@ public class MatchUtils extends Thread {
         return new Point(2 * center.x - point.x, 2 * center.y - point.y);
     }
 
-    public static double getPSNR(Mat I1, Mat I2) {
-        Mat s1 = new Mat();
-        absdiff(I1, I2, s1);       // 计算两幅图像差值的绝对值|I1 - I2|
-        s1.convertTo(s1, CV_32F);  // 在进行平方操作之前先加深图像深度
-        s1 = s1.mul(s1);           //对差值绝对值进行求平方 |I1 - I2|^2
-        Scalar s = Core.sumElems(s1);        // 对每个通道的像素值求和
-        double sse = s.val[0] + s.val[1] + s.val[2]; // 三通道的总像素值
-        if (sse <= 1e-10)           //如果两幅图像差值绝对值的平方三通道总和很小，则无差别
-            return 0;
-        else {
-            double mse = sse / (double) (I1.channels() * I1.total());            //均方误差 = 差值平方和 / 总像素数
-            return 10.0 * Math.log10((255.0 * 255.0) / mse);
-        }
-    }
-
 //    private static Mat[] matchFeature(Mat descA, Mat descB, @FloatRange(from = 0.0, to = 1.0) float ratio) {
 //        // Number of descriptors for each image
 //        int NoDescA = descA.height(), NoDescB = descB.height();
@@ -1021,9 +1027,52 @@ public class MatchUtils extends Thread {
         originalBMP = matToBitmap(matched[1]);
         sampleBMP = matToBitmap(matched[2]);
 
+        new cw_ssim(context, matched[1], matched[2]).run();
 //        MSSIMValue = getMSSIM(matched[1], matched[2]).val[0];
 //        SSIMValue = getSSIM(matched[1], matched[2]).val[0];
 //        PSNRValue = getPSNR(matched[1], matched[2]);
+    }
+
+    private class cw_ssim implements Runnable {
+        private Context context;
+        private Mat mat1, mat2;
+
+        public cw_ssim(Context context, Mat mat1, Mat mat2) throws CvException {
+            if (!mat1.size().equals(mat2.size()))
+                throw new CvException("Sizes of two mats are not equivalent");
+            this.context = context;
+            this.mat1 = mat1;
+            this.mat2 = mat2;
+            initPython();
+        }
+
+        private void initPython() {
+            if (!Python.isStarted()) {
+                Python.start(new AndroidPlatform(context));
+            }
+        }
+
+        /**
+         * Compute the complex wavelet SSIM (CW-SSIM) value from the reference image to the target image.
+         *
+         * @param img1  Input image to compare the reference image to. This may be a PIL Image object or,
+         *              to save time, an SSIMImage object (e.g. the img member of another SSIM object).
+         * @param img2  Same as img1
+         * @param width width for the wavelet convolution (default: 30)
+         * @return CW-SSIM Value
+         */
+        public double calcCW_SSIMValue(PyObject img1, PyObject img2, int width) {
+            return Python.getInstance().getModule("SSIM").callAttr("SSIM", img1).callAttr("cw_ssim_value", img2, width).toDouble();
+        }
+
+        public PyObject cvtMat(Mat src) {
+            return Python.getInstance().getModule("SSIM").callAttr("cvtMat", src);
+        }
+
+        @Override
+        public void run() {
+            setCW_SSIMValue(calcCW_SSIMValue(cvtMat(mat1), cvtMat(mat2), 30));
+        }
     }
 
 //    public enum Find {More, Less, Equal}
