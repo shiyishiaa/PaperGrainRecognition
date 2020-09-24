@@ -12,24 +12,29 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Insets;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.icu.text.SimpleDateFormat;
 import android.icu.util.Calendar;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.provider.MediaStore;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.animation.Animation;
+import android.view.WindowInsets;
+import android.view.WindowMetrics;
+import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -61,6 +66,7 @@ import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.text.ParsePosition;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
@@ -83,7 +89,6 @@ public class recognition extends AppCompatActivity {
             PERMISSION_READ_EXTERNAL_STORAGE = 0xFF02;
     // Path change codes
     private static final int
-            INITIAL_MATCH = 0xCC00,
             ORIGINAL_CHANGED = 0xCC01,
             SAMPLE_CHANGED = 0xCC02;
     // Match codes
@@ -109,7 +114,6 @@ public class recognition extends AppCompatActivity {
             new ArrayBlockingQueue<>(10),
             new ThreadPoolExecutor.DiscardOldestPolicy());
     private Toast toast;
-    private MatchUtils[] utils = new MatchUtils[10];
     private SharedPreferences Config;
     // Storage path
     private String originalPath, samplePath;
@@ -119,6 +123,7 @@ public class recognition extends AppCompatActivity {
     private Button btnStart, btnAbort;
     private ImageButton imgBtnOriginal, imgBtnSample;
     private ImageButton menuBtnBrightness, menuBtnRecognition, menuBtnResult;
+    private ImageView expanded_image, loading_image;
     private LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout, MainLayout, LaunchLayout;
     // xStart stores the location where swipe gesture starts.
     private float xStart = 0;
@@ -135,7 +140,6 @@ public class recognition extends AppCompatActivity {
             }
         }
     };
-    private Animation loadAnimation;
     private boolean mBackKeyPressed;
     private Animator currentAnimator;
     private int shortAnimationDuration;
@@ -144,30 +148,23 @@ public class recognition extends AppCompatActivity {
         switch (msg.what) {
             case ORIGINAL_CHANGED:
                 runOnUiThread(() -> setImageView(imgBtnOriginal, originalPath));
-                for (MatchUtils util : utils)
-                    util.setOriginal(originalPath);
                 return true;
             case SAMPLE_CHANGED:
                 runOnUiThread(() -> setImageView(imgBtnSample, samplePath));
-                for (MatchUtils util : utils)
-                    util.setSample(samplePath);
-                return true;
-            case INITIAL_MATCH:
-                for (int i = 0; i < utils.length; i++)
-                    utils[i] = new MatchUtils(originalPath, samplePath);
                 return true;
             default:
                 return false;
         }
     });
     private Handler toastHandler = new Handler(Looper.getMainLooper());
+    private MatchUtils[] utils;
     private Handler matchHandler = new Handler(Looper.getMainLooper(), msg -> {
         switch (msg.what) {
             default:
                 return false;
             case START_MATCHING:
                 start = dateFormat.format(Calendar.getInstance().getTime());
-                updateStartTime(start.substring(0, start.length() - 4));
+                updateStartTime(start.substring(0, start.length() - 4), utils);
                 autoCheckMatchingStatus();
                 return true;
             case ABORT_MATCHING:
@@ -175,43 +172,74 @@ public class recognition extends AppCompatActivity {
                 return true;
             case MATCH_FINISHED:
                 end = dateFormat.format(Calendar.getInstance().getTime());
-                updateEndTime(end.substring(0, end.length() - 4));
+                updateEndTime(end.substring(0, end.length() - 4), utils);
+                enableLoading(false);
                 backgroundedToast(R.string.textProcessDone, Toast.LENGTH_SHORT);
-//                for (MatchUtils util : utils)
-//                    Log.i("MSSIM Values", String.valueOf(util.getMSSIMValue()));
-//                for (MatchUtils util : utils)
-//                    Log.i("SSIM Values", String.valueOf(util.getSSIMValue()));
-//                for (MatchUtils util : utils)
-//                    Log.i("PSNR Values", String.valueOf(util.getPSNRValue()));
-                Log.i("Time cost", Math.abs(
+                Log.i("Match time cost", Math.abs(
                         dateFormat.parse(start, new ParsePosition(0)).getTime() -
                                 dateFormat.parse(end, new ParsePosition(0)).getTime()) + " ms");
-                MatchResult result = new MatchResult(this, utils);
-                IOExecutor.execute(result);
+                MatchResult[] result = new MatchResult[14];
+                for (short i = 0; i < result.length; i++) {
+                    result[i] = new MatchResult(this, utils[i], i);
+                    IOExecutor.execute(result[i]);
+                }
                 backgroundedToast(R.string.WriteStart, Toast.LENGTH_SHORT);
                 autoCheckWritingStatus();
                 return true;
             case WRITE_FINISHED:
                 backgroundedToast(R.string.WriteDone, Toast.LENGTH_SHORT);
+                end = dateFormat.format(Calendar.getInstance().getTime());
+                Log.i("Match time cost", Math.abs(
+                        dateFormat.parse(start, new ParsePosition(0)).getTime() -
+                                dateFormat.parse(end, new ParsePosition(0)).getTime()) + " ms");
                 for (MatchUtils util : utils)
                     Log.i("CW-SSIM Values", String.valueOf(util.getCW_SSIMValue()));
                 return true;
             case MATCH_ABORTED:
                 end = dateFormat.format(Calendar.getInstance().getTime());
-                updateEndTime(end.substring(0, end.length() - 4));
+                updateEndTime(end.substring(0, end.length() - 4), utils);
                 backgroundedToast(R.string.textProcessAborted, Toast.LENGTH_SHORT);
                 return true;
         }
     });
 
-    public recognition(Animation loadAnimation) {
-        this.loadAnimation = loadAnimation;
-    }
-
     private static Message createEmptyMessage(int msg) {
         Message message = new Message();
         message.what = msg;
         return message;
+    }
+
+    private static Message createMessage(int what, Object obj) {
+        Message message = new Message();
+        message.what = what;
+        message.obj = obj;
+        return message;
+    }
+
+    public static int getScreenWidth(@NonNull Activity activity) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowMetrics windowMetrics = activity.getWindowManager().getCurrentWindowMetrics();
+            Insets insets = windowMetrics.getWindowInsets()
+                    .getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
+            return windowMetrics.getBounds().width() - insets.left - insets.right;
+        } else {
+            DisplayMetrics displayMetrics = new DisplayMetrics();
+            activity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+            return displayMetrics.widthPixels;
+        }
+    }
+
+    public static int getScreenHeight(@NonNull Activity activity) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowMetrics windowMetrics = activity.getWindowManager().getCurrentWindowMetrics();
+            Insets insets = windowMetrics.getWindowInsets()
+                    .getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
+            return windowMetrics.getBounds().height() - insets.top - insets.bottom;
+        } else {
+            DisplayMetrics displayMetrics = new DisplayMetrics();
+            activity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+            return displayMetrics.heightPixels;
+        }
     }
 
     private void autoCheckWritingStatus() {
@@ -231,13 +259,13 @@ public class recognition extends AppCompatActivity {
         return CPUExecutor.getActiveCount() != 0;
     }
 
-    private void updateStartTime(String s) {
+    private void updateStartTime(String s, MatchUtils[] utils) {
         for (MatchUtils util : utils) {
             util.setStart(s);
         }
     }
 
-    private void updateEndTime(String s) {
+    private void updateEndTime(String s, MatchUtils[] utils) {
         for (MatchUtils util : utils) {
             util.setEnd(s);
         }
@@ -246,7 +274,7 @@ public class recognition extends AppCompatActivity {
     private void autoCheckAbortingStatus() {
         matchHandler.postDelayed(() -> {
             if (!isMatching()) {
-                matchHandler.sendMessage(createEmptyMessage(MATCH_ABORTED));
+                matchHandler.sendMessage(createMessage(MATCH_ABORTED, utils));
             } else
                 autoCheckAbortingStatus();
         }, 1000);
@@ -255,7 +283,7 @@ public class recognition extends AppCompatActivity {
     private void autoCheckMatchingStatus() {
         matchHandler.postDelayed(() -> {
             if (!isMatching()) {
-                matchHandler.sendMessage(createEmptyMessage(MATCH_FINISHED));
+                matchHandler.sendMessage(createMessage(MATCH_FINISHED, utils));
             } else
                 autoCheckMatchingStatus();
         }, 1000);
@@ -342,7 +370,6 @@ public class recognition extends AppCompatActivity {
     }
 
     private void applyConfig() {
-        pathHandler.sendMessage(createEmptyMessage(INITIAL_MATCH));
         if (originalPath != null)
             if (new File(originalPath).exists()) {
                 pathHandler.sendMessage(createEmptyMessage(ORIGINAL_CHANGED));
@@ -413,22 +440,16 @@ public class recognition extends AppCompatActivity {
                 case REQUEST_ORIGINAL_IMAGE:
                     FileUtils originalFileUtils = new FileUtils(this);
                     originalPath = originalFileUtils.getPath(data.getData());
-                    pathChanged(PictureType.Original);
                     pathHandler.sendMessage(createEmptyMessage(ORIGINAL_CHANGED));
                     break;
                 case REQUEST_SAMPLE_IMAGE:
                     FileUtils sampleFileUtils = new FileUtils(this);
                     samplePath = sampleFileUtils.getPath(data.getData());
-                    pathChanged(PictureType.Sample);
                     pathHandler.sendMessage(createEmptyMessage(SAMPLE_CHANGED));
                     break;
             }
         }
         super.onActivityResult(requestCode, resultCode, data);
-    }
-
-    private void pathChanged(PictureType type) {
-        pathHandler.sendMessage(createEmptyMessage(type == PictureType.Original ? ORIGINAL_CHANGED : SAMPLE_CHANGED));
     }
 
     @Override
@@ -524,6 +545,9 @@ public class recognition extends AppCompatActivity {
         imgBtnOriginal.setOnClickListener(v -> runOnUiThread(() -> zoomImage(imgBtnOriginal, originalPath)));
         imgBtnSample = findViewById(R.id.imgBtnSample);
         imgBtnSample.setOnClickListener(v -> runOnUiThread(() -> zoomImage(imgBtnSample, samplePath)));
+
+        expanded_image = findViewById(R.id.expanded_image);
+        loading_image = findViewById(R.id.loading_image);
 
         menuBtnBrightness = findViewById(R.id.imBtnBrightness);
         menuBtnRecognition = findViewById(R.id.imBtnRecognition);
@@ -728,14 +752,15 @@ public class recognition extends AppCompatActivity {
             backgroundedToast(R.string.textProcessing, Toast.LENGTH_SHORT);
             return;
         }
-        for (MatchUtils util : utils) {
-            CPUExecutor.execute(util);
-        }
-        Message message = new Message();
-        message.what = START_MATCHING;
-        matchHandler.sendMessage(message);
 
+        utils = new MatchUtils[14];
+        Arrays.fill(utils, new MatchUtils(originalPath, samplePath));
+        for (MatchUtils util : utils)
+            CPUExecutor.execute(util);
+
+        matchHandler.sendMessage(createEmptyMessage(START_MATCHING));
         backgroundedToast(R.string.textStartMatching, Toast.LENGTH_SHORT);
+        enableLoading(true);
     }
 
     private void stopMatching() {
@@ -745,11 +770,9 @@ public class recognition extends AppCompatActivity {
         }
 
         backgroundedToast(R.string.textProcessAborting, Toast.LENGTH_SHORT);
-        Message message = new Message();
-        message.what = ABORT_MATCHING;
-        matchHandler.sendMessage(message);
+        matchHandler.sendMessage(createEmptyMessage(ABORT_MATCHING));
 
-        long time_out = 5;//超时时间，自己根据任务特点设置
+        final long time_out = 5;//超时时间，自己根据任务特点设置
         //第一步，调用shutdown等待在执行的任务和提交等待的任务执行，同时不允许提交任务
         CPUExecutor.shutdown();
         try {
@@ -772,6 +795,45 @@ public class recognition extends AppCompatActivity {
         }
     }
 
+    private void enableLoading(boolean toggle) {
+        if (toggle) {
+            int padding = (int) (getScreenWidth(this) * 0.4);
+            loading_image.setPadding(padding, padding, padding, padding);
+            loading_image.setAnimation(AnimationUtils.loadAnimation(this, R.anim.loading));
+            loading_image.setVisibility(View.VISIBLE);
+
+            expanded_image.setBackgroundColor(this.getColor(R.color.AlphaBlack));
+            expanded_image.setVisibility(View.VISIBLE);
+
+            btnOriginalChoosePicture.setEnabled(false);
+            btnOriginalOpenCamera.setEnabled(false);
+            btnOriginalClear.setEnabled(false);
+
+            btnSampleChoosePicture.setEnabled(false);
+            btnSampleOpenCamera.setEnabled(false);
+            btnSampleClear.setEnabled(false);
+
+            imgBtnOriginal.setEnabled(false);
+            imgBtnSample.setEnabled(false);
+        } else {
+            loading_image.setVisibility(View.INVISIBLE);
+
+            expanded_image.setBackground(null);
+            expanded_image.setVisibility(View.INVISIBLE);
+
+            btnOriginalChoosePicture.setEnabled(true);
+            btnOriginalOpenCamera.setEnabled(true);
+            btnOriginalClear.setEnabled(true);
+
+            btnSampleChoosePicture.setEnabled(true);
+            btnSampleOpenCamera.setEnabled(true);
+            btnSampleClear.setEnabled(true);
+
+            imgBtnOriginal.setEnabled(true);
+            imgBtnSample.setEnabled(true);
+        }
+    }
+
     private File createImageFile(PictureType type) throws IOException {
         // Create an image file name
         String imageFileName = Long.valueOf(System.currentTimeMillis()).toString();
@@ -788,10 +850,10 @@ public class recognition extends AppCompatActivity {
         // Save a file: path for use with ACTION_VIEW intents
         if (type == PictureType.Original) {
             originalPath = image.getAbsolutePath();
-            pathChanged(PictureType.Original);
+            pathHandler.sendMessage(createEmptyMessage(ORIGINAL_CHANGED));
         } else {
             samplePath = image.getAbsolutePath();
-            pathChanged(PictureType.Sample);
+            pathHandler.sendMessage(createEmptyMessage(SAMPLE_CHANGED));
         }
 
         return image;

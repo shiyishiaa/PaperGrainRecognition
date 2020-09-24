@@ -2,11 +2,17 @@
 
 from __future__ import absolute_import
 
+import cv2
 import numpy as np
 import scipy.ndimage
 from PIL import ImageOps, Image
 from numpy.ma.core import exp
 from scipy import signal
+
+
+def cvtMat(src):
+    img = cv2.cvtColor(src, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(img)
 
 
 def compute_ssim(image1, image2, gaussian_kernel_sigma=1.5,

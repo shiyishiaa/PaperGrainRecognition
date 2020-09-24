@@ -61,7 +61,7 @@
     <string name="labelMatch">Match</string>
     <string name="descSample">Sample</string>
     <string name="descOriginal">Original</string>
-    <string name="description_zoom_touch_close">Touch to close</string>
+    <string name="descZoom">Touch to close</string>
     <string name="textWrongPicture">Pictures sizes unmatch!</string>
     <string name="textProcessing">Pictures Processing!</string>
     <string name="textProcessDone">Process is done!</string>
@@ -74,4 +74,5 @@
     <string name="textClearSucceeded">Succeeded to clear!</string>
     <string name="WriteDone">Data writing finished!</string>
     <string name="WriteStart">Data writing starts!</string>
+    <string name="descLoading">Loading Animation</string>
 </resources>

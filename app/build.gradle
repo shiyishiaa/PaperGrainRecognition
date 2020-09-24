@@ -3,7 +3,7 @@ apply plugin: 'com.chaquo.python'
 
 android {
     compileSdkVersion 30
-    buildToolsVersion '29.0.2'
+    buildToolsVersion buildToolsVersion
 
     defaultConfig {
         applicationId 'com.grain.grain'
@@ -19,6 +19,7 @@ android {
                 install "numpy"
                 install "scipy"
                 install "Pillow"
+                install "opencv-python"
             }
         }
         ndk {

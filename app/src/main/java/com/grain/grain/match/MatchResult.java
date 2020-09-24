@@ -13,6 +13,8 @@ import com.grain.grain.R;
 import com.grain.grain.io.Columns;
 import com.grain.grain.io.PaperGrainDBHelper;
 
+import org.opencv.core.Mat;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -23,13 +25,14 @@ import static com.grain.grain.io.Columns.COLUMN_NAME_TIME_START;
 import static com.grain.grain.io.Columns.TABLE_NAME;
 
 public class MatchResult extends Thread {
-    private boolean result;
-    private MatchUtils[] utils;
+    private MatchUtils util;
     private Context context;
+    private short index;
 
-    public MatchResult(Context _context, MatchUtils[] _utils) {
+    public MatchResult(Context _context, MatchUtils _util, short _index) {
         this.context = _context;
-        this.utils = _utils;
+        this.util = _util;
+        this.index = _index;
         initPython();
     }
 
@@ -64,7 +67,7 @@ public class MatchResult extends Thread {
             throw new IOException("Fail to create file!");
     }
 
-    private void writeImages() throws IOException {
+    public void writeImages() throws IOException {
         PaperGrainDBHelper helper = new PaperGrainDBHelper(context);
         SQLiteDatabase write = helper.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -72,70 +75,59 @@ public class MatchResult extends Thread {
         File storageDir =
                 context.getExternalFilesDir(Environment.DIRECTORY_PICTURES + "/" +
                         context.getString(R.string.ResultFolderName) + "/" +
-                        utils[0].getStart());
+                        util.getStart());
         File originalDir = new File(storageDir, context.getString(R.string.OriginalFolderName));
         File sampleDir = new File(storageDir, context.getString(R.string.SampleFolderName));
         File SURFDir = new File(storageDir, context.getString(R.string.SURFFolderName));
-        if (originalDir.mkdirs() && sampleDir.mkdirs() && SURFDir.mkdirs())
-            for (int i = 0; i < utils.length; i++) {
-                File original = new File(originalDir, i + ".png");
-                File sample = new File(sampleDir, i + ".png");
-                File SURF = new File(SURFDir, i + ".png");
+        if (originalDir.mkdirs() && sampleDir.mkdirs() && SURFDir.mkdirs()) {
+            File original = new File(originalDir, index + ".png");
+            File sample = new File(sampleDir, index + ".png");
+            File SURF = new File(SURFDir, index + ".png");
 
-                values.put("original_" + i, original.getAbsolutePath());
-                values.put("sample_" + i, sample.getAbsolutePath());
-                values.put("surf_" + i, SURF.getAbsolutePath());
+            values.put("original_" + index, original.getAbsolutePath());
+            values.put("sample_" + index, sample.getAbsolutePath());
+            values.put("surf_" + index, SURF.getAbsolutePath());
 
-                saveBitmap(utils[i].originalBMP, original);
-                saveBitmap(utils[i].sampleBMP, sample);
-                saveBitmap(utils[i].surfBMP, SURF);
+            saveBitmap(util.originalBMP, original);
+            saveBitmap(util.sampleBMP, sample);
+            saveBitmap(util.surfBMP, SURF);
 
-                utils[i].setCW_SSIMValue(calcCW_SSIMValue(original.getAbsolutePath(), sample.getAbsolutePath()));
-                values.put("SSIM_" + i, utils[i].getCW_SSIMValue());
-            }
-        values.put(COLUMN_NAME_TIME_START, utils[0].getStart());
-        values.put(COLUMN_NAME_TIME_END, utils[0].getEnd());
-        values.put(Columns.COLUMN_NAME_ORIGINAL, utils[0].getPath()[0]);
-        values.put(Columns.COLUMN_NAME_SAMPLE, utils[0].getPath()[1]);
+            util.setCW_SSIMValue(calcCW_SSIMValue(original.getAbsolutePath(), sample.getAbsolutePath(), 30));
+            values.put("SSIM_" + index, util.getCW_SSIMValue());
+        }
+        values.put(COLUMN_NAME_TIME_START, util.getStart());
+        values.put(COLUMN_NAME_TIME_END, util.getEnd());
+        values.put(Columns.COLUMN_NAME_ORIGINAL, util.getPath()[0]);
+        values.put(Columns.COLUMN_NAME_SAMPLE, util.getPath()[1]);
         values.put(Columns.COLUMN_NAME_DELETED, false);
         values.put(COLUMN_NAME_FINISHED, true);
         write.insert(TABLE_NAME, null, values);
         PaperGrainDBHelper.updateCount(write);
     }
 
-    public boolean getResult() {
-        return result;
+    /**
+     * Compute the complex wavelet SSIM (CW-SSIM) value from the reference image to the target image.
+     *
+     * @param img1  Input image to compare the reference image to. This may be a PIL Image object or,
+     *              to save time, an SSIMImage object (e.g. the img member of another SSIM object).
+     * @param img2  Same as img1
+     * @param width width for the wavelet convolution (default: 30)
+     * @return CW-SSIM Value
+     */
+    public double calcCW_SSIMValue(String img1, String img2, int width) {
+        return Python.getInstance().getModule("SSIM").callAttr("SSIM", img1).callAttr("cw_ssim_value", img2, width).toDouble();
     }
 
-    public synchronized void calcResult() {
-        final double target = 10.0, lowest = 3.0;
-        double ruler = 7.0;
-        for (MatchUtils util : utils) {
-            ruler += getWeight(util.getMSSIMValue());
-            if (ruler >= target)
-                result = true;
-            else if (ruler <= lowest)
-                result = false;
-        }
-        result = false;
+    public PyObject cvtMat(Mat src) {
+        return Python.getInstance().getModule("SSIM").callAttr("cvtMat", src);
     }
 
-    public double calcCW_SSIMValue(String img1, String img2) {
-        Python py = Python.getInstance();
-
-        PyObject _SSIM = py.getModule("SSIM");
-        PyObject SSIM = _SSIM.callAttr("SSIM", img1);
-        PyObject cw_ssim_value = SSIM.callAttr("cw_ssim_value", img2);
-        return cw_ssim_value.toDouble();
+    public void setIndex(short index) {
+        this.index = index;
     }
 
     @Override
     public void run() {
-        calcResult();
-        try {
-            writeImages();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
     }
 }
