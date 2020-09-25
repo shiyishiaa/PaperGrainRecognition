@@ -58,14 +58,14 @@ import static com.grain.grain.io.Columns._ID;
 public class PaperGrainDBHelper extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "PaperGrain.db";
     public static final Integer DATABASE_VERSION = 1;
-    private static final String SQL_CREATE_ENTRIES =
-            "CREATE TABLE " + TABLE_NAME + " (" +
+    public static final String SQL_CREATE_ENTRIES =
+            " CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
                     _ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
                     _COUNT + " INTEGER," +
                     COLUMN_NAME_ORIGINAL + " TEXT," +
                     COLUMN_NAME_SAMPLE + " TEXT," +
-                    COLUMN_NAME_TIME_START + " DATE," +
-                    COLUMN_NAME_TIME_END + " DATE," +
+                    COLUMN_NAME_TIME_START + " TEXT," +
+                    COLUMN_NAME_TIME_END + " TEXT," +
                     COLUMN_NAME_SURF_0 + " TEXT," +
                     COLUMN_NAME_SURF_1 + " TEXT," +
                     COLUMN_NAME_SURF_2 + " TEXT," +
@@ -110,7 +110,7 @@ public class PaperGrainDBHelper extends SQLiteOpenHelper {
                     COLUMN_NAME_DELETED + " BOOLEAN)";
 
     private static final String SQL_DELETE_ENTRIES =
-            "DROP TABLE IF EXISTS " + TABLE_NAME;
+            " DROP TABLE IF EXISTS " + TABLE_NAME;
 
     public PaperGrainDBHelper(Context context) {
         super(
@@ -136,7 +136,7 @@ public class PaperGrainDBHelper extends SQLiteOpenHelper {
         if (cursor.moveToFirst()) {
             int index = 1;
             do {
-                String _count = "UPDATE " + TABLE_NAME +
+                String _count = " UPDATE " + TABLE_NAME +
                         " SET " + _COUNT + "=" + index +
                         " WHERE " + _ID + "=" + cursor.getInt(0);
                 database.execSQL(_count);

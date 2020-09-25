@@ -10,8 +10,8 @@ from numpy.ma.core import exp
 from scipy import signal
 
 
-def cvtMat(src):
-    img = cv2.cvtColor(src, cv2.COLOR_BGR2RGB)
+def cvt_mat(src):
+    img = cv2.cvtColor(np.asarray(src, dtype=np.float64), cv2.COLOR_BGR2RGB)
     return Image.fromarray(img)
 
 

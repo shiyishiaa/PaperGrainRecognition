@@ -56,7 +56,7 @@ public class brightness extends AppCompatActivity {
     private SeekBar seekBarAdjustBrightness;
     private LinearLayout BluetoothFunctionLayout;
     // Bottom menu bar.
-    private ImageButton imBtnBrightness, imBtnRecognition, imBtnResult;
+    private ImageButton menuBtnBrightness, menuBtnRecognition, menuBtnResult;
     private LinearLayout BrightnessLayout, RecognitionLayout, ResultLayout;
     // The bluetooth object.
     private UUID defaultUuid;
@@ -174,7 +174,6 @@ public class brightness extends AppCompatActivity {
             default:
                 backgroundedToast(R.string.textUnexpectedError, Toast.LENGTH_LONG);
         }
-        overridePendingTransition(R.anim.in_from_right, R.anim.out_to_left);
     }
 
     /**
@@ -205,9 +204,9 @@ public class brightness extends AppCompatActivity {
         textBluetoothIsPairing = findViewById(R.id.textBluetoothIsPairing);
         BluetoothFunctionLayout = findViewById(R.id.BluetoothFunctionLayout);
 
-        imBtnBrightness = findViewById(R.id.imBtnBrightness);
-        imBtnRecognition = findViewById(R.id.imBtnRecognition);
-        imBtnResult = findViewById(R.id.imBtnResult);
+        menuBtnBrightness = findViewById(R.id.imBtnBrightness);
+        menuBtnRecognition = findViewById(R.id.imBtnRecognition);
+        menuBtnResult = findViewById(R.id.imBtnResult);
 
         BrightnessLayout = findViewById(R.id.BrightnessLayout);
         RecognitionLayout = findViewById(R.id.RecognitionLayout);
@@ -222,17 +221,21 @@ public class brightness extends AppCompatActivity {
      */
     private void setFunction() {
         // Menu bar
-        imBtnRecognition.setOnClickListener(view -> {
+        menuBtnRecognition.setOnClickListener(view -> {
             Intent intent = new Intent();
             intent.setClass(brightness.this, recognition.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startActivity(intent);
             this.finish();
+            overridePendingTransition(R.anim.in_from_right, R.anim.out_to_left);
         });
-        imBtnResult.setOnClickListener(view -> {
+        menuBtnResult.setOnClickListener(view -> {
             Intent intent = new Intent();
             intent.setClass(brightness.this, result.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startActivity(intent);
             this.finish();
+            overridePendingTransition(R.anim.in_from_right, R.anim.out_to_left);
         });
         BrightnessLayout.setBackgroundColor(this.getColor(R.color.AlphaGray));
         // Switch

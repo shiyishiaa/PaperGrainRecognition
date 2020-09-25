@@ -75,6 +75,7 @@ public class result extends AppCompatActivity {
     private SharedPreferences Config;
     private String originalResult, sampleResult, SURFResult;
 
+    @SuppressWarnings("UnusedReturnValue")
     public static boolean deleteRecursive(File fileOrDirectory) {
         if (fileOrDirectory.isDirectory())
             for (File child : Objects.requireNonNull(fileOrDirectory.listFiles()))
@@ -247,13 +248,13 @@ public class result extends AppCompatActivity {
         labelSamplePicture = findViewById(R.id.labelSamplePicture);
 
         imgBtnOriginal = findViewById(R.id.imgBtnOriginal);
-        imgBtnOriginal.setOnClickListener(v -> zoomImageFromThumb(imgBtnOriginal, originalResult));
+        imgBtnOriginal.setOnClickListener(v -> zoomImage(imgBtnOriginal, originalResult));
 
         imgBtnSample = findViewById(R.id.imgBtnSample);
-        imgBtnSample.setOnClickListener(v -> zoomImageFromThumb(imgBtnSample, sampleResult));
+        imgBtnSample.setOnClickListener(v -> zoomImage(imgBtnSample, sampleResult));
 
         imgBtnMatch = findViewById(R.id.imgBtnMatch);
-        imgBtnMatch.setOnClickListener(v -> zoomImageFromThumb(imgBtnMatch, SURFResult));
+        imgBtnMatch.setOnClickListener(v -> zoomImage(imgBtnMatch, SURFResult));
 
         btnDelete = findViewById(R.id.btnDelete);
         btnDelete.setOnClickListener(v -> {
@@ -308,7 +309,7 @@ public class result extends AppCompatActivity {
         Config = getSharedPreferences("Config", MODE_PRIVATE);
     }
 
-    private void zoomImageFromThumb(final View thumbView, String imagePath) {
+    private void zoomImage(final View thumbView, String imagePath) {
         // If there's an animation in progress, cancel it
         // immediately and proceed with this one.
         if (currentAnimator != null) {
@@ -471,12 +472,14 @@ public class result extends AppCompatActivity {
         menuBtnRecognition.setOnClickListener(view -> {
             Intent intent = new Intent();
             intent.setClass(result.this, recognition.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startActivity(intent);
             this.finish();
         });
         menuBtnBrightness.setOnClickListener(view -> {
             Intent intent = new Intent();
             intent.setClass(result.this, brightness.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startActivity(intent);
             this.finish();
         });
@@ -503,7 +506,6 @@ public class result extends AppCompatActivity {
 
     private class History {
         private Context context;
-        private String[] name;
         private SimpleCursorAdapter adapter;
         private SQLiteDatabase database;
 
@@ -519,14 +521,6 @@ public class result extends AppCompatActivity {
                         _COUNT;
                 Cursor cursor = database.rawQuery(sql, null);
                 this.context = context;
-                this.name = new String[cursor.getCount()];
-                if (cursor.moveToFirst()) {
-                    int index = 0;
-                    do {
-                        this.name[index] = cursor.getString(2);
-                        index++;
-                    } while (cursor.moveToNext());
-                }
                 this.adapter = new SimpleCursorAdapter(
                         context,
                         R.layout.spinner,
@@ -545,14 +539,6 @@ public class result extends AppCompatActivity {
             }
         }
 
-        private void updateOrderAfterDelete() {
-            PaperGrainDBHelper.updateCount(database);
-        }
-
-        public String[] getName() {
-            return name;
-        }
-
         public CursorAdapter getAdapter() {
             return adapter;
         }
@@ -563,7 +549,7 @@ public class result extends AppCompatActivity {
                     " SET " + COLUMN_NAME_DELETED + "=" + 1 +
                     " WHERE " + _COUNT + "=" + (position + 1);
             database.execSQL(delete);
-            updateOrderAfterDelete();
+            PaperGrainDBHelper.updateCount(database);
             String sql = " SELECT " +
                     _ID + "," + _COUNT + "," + COLUMN_NAME_TIME_START +
                     " FROM " +

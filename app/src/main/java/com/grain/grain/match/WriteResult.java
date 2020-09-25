@@ -7,19 +7,21 @@ import android.graphics.Bitmap;
 import android.os.Environment;
 
 import com.grain.grain.R;
-import com.grain.grain.io.Columns;
 import com.grain.grain.io.PaperGrainDBHelper;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import static com.grain.grain.io.Columns.COLUMN_NAME_DELETED;
 import static com.grain.grain.io.Columns.COLUMN_NAME_FINISHED;
+import static com.grain.grain.io.Columns.COLUMN_NAME_ORIGINAL;
+import static com.grain.grain.io.Columns.COLUMN_NAME_SAMPLE;
 import static com.grain.grain.io.Columns.COLUMN_NAME_TIME_END;
 import static com.grain.grain.io.Columns.COLUMN_NAME_TIME_START;
 import static com.grain.grain.io.Columns.TABLE_NAME;
 
-public class WriteResult extends Thread {
+public class WriteResult implements Runnable {
     private Context context;
     private MatchUtils utils;
     private short index;
@@ -42,27 +44,36 @@ public class WriteResult extends Thread {
         File originalDir = new File(storageDir, context.getString(R.string.OriginalFolderName));
         File sampleDir = new File(storageDir, context.getString(R.string.SampleFolderName));
         File SURFDir = new File(storageDir, context.getString(R.string.SURFFolderName));
-        if (originalDir.mkdirs() && sampleDir.mkdirs() && SURFDir.mkdirs()) {
-            File original = new File(originalDir, index + ".png");
-            File sample = new File(sampleDir, index + ".png");
-            File SURF = new File(SURFDir, index + ".png");
+        if (!originalDir.exists())
+            originalDir.mkdirs();
+        if (!sampleDir.exists())
+            sampleDir.mkdirs();
+        if (!SURFDir.exists())
+            SURFDir.mkdirs();
 
-            values.put("original_" + index, original.getAbsolutePath());
-            values.put("sample_" + index, sample.getAbsolutePath());
-            values.put("surf_" + index, SURF.getAbsolutePath());
-            values.put("SSIM_" + index, utils.getCW_SSIMValue());
+        File original = new File(originalDir, index + ".png");
+        File sample = new File(sampleDir, index + ".png");
+        File SURF = new File(SURFDir, index + ".png");
 
-            saveBitmap(utils.originalBMP, original);
-            saveBitmap(utils.sampleBMP, sample);
-            saveBitmap(utils.surfBMP, SURF);
-        }
+        values.put("original_" + index, original.getAbsolutePath());
+        values.put("sample_" + index, sample.getAbsolutePath());
+        values.put("surf_" + index, SURF.getAbsolutePath());
+        values.put("SSIM_" + index, utils.getCW_SSIMValue());
+
+        saveBitmap(utils.originalBMP, original);
+        saveBitmap(utils.sampleBMP, sample);
+        saveBitmap(utils.surfBMP, SURF);
+
         values.put(COLUMN_NAME_TIME_START, utils.getStart());
         values.put(COLUMN_NAME_TIME_END, utils.getEnd());
-        values.put(Columns.COLUMN_NAME_ORIGINAL, utils.getPath()[0]);
-        values.put(Columns.COLUMN_NAME_SAMPLE, utils.getPath()[1]);
-        values.put(Columns.COLUMN_NAME_DELETED, false);
+        values.put(COLUMN_NAME_ORIGINAL, utils.getPath()[0]);
+        values.put(COLUMN_NAME_SAMPLE, utils.getPath()[1]);
+        values.put(COLUMN_NAME_DELETED, false);
         values.put(COLUMN_NAME_FINISHED, true);
-        write.insert(TABLE_NAME, null, values);
+
+        if (write.update(TABLE_NAME, values,
+                COLUMN_NAME_TIME_START + " =  " + utils.getStart(), null) == 0)
+            write.insert(TABLE_NAME, null, values);
         PaperGrainDBHelper.updateCount(write);
     }
 
@@ -70,7 +81,6 @@ public class WriteResult extends Thread {
         if (file.createNewFile())
             try (FileOutputStream out = new FileOutputStream(file)) {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-                // PNG is a lossless format, the compression factor (100) is ignored
             } catch (IOException ignored) {
             }
         else
@@ -79,6 +89,10 @@ public class WriteResult extends Thread {
 
     @Override
     public void run() {
-
+        try {
+            writeImages();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

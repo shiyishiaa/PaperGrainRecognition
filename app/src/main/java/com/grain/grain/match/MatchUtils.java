@@ -31,6 +31,9 @@ import org.opencv.features2d.Features2d;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.xfeatures2d.SURF;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -58,7 +61,7 @@ import static org.opencv.imgproc.Imgproc.line;
 import static org.opencv.imgproc.Imgproc.threshold;
 import static org.opencv.imgproc.Imgproc.warpAffine;
 
-public class MatchUtils extends Thread {
+public class MatchUtils implements Runnable {
     public Bitmap originalBMP, sampleBMP, surfBMP;
     private double MSSIMValue, SSIMValue, PSNRValue, CW_SSIMValue;
     private String original, sample, start, end;
@@ -1000,10 +1003,15 @@ public class MatchUtils extends Thread {
 
     @Override
     public synchronized void run() {
-        match();
+        try {
+            match();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    private void match() {
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private void match() throws IOException {
         Mat[] mats = new Mat[]{
                 imread(original, CV_LOAD_IMAGE_GRAYSCALE),
                 imread(sample, CV_LOAD_IMAGE_GRAYSCALE)
@@ -1027,53 +1035,52 @@ public class MatchUtils extends Thread {
         originalBMP = matToBitmap(matched[1]);
         sampleBMP = matToBitmap(matched[2]);
 
-        new cw_ssim(context, matched[1], matched[2]).run();
-//        MSSIMValue = getMSSIM(matched[1], matched[2]).val[0];
-//        SSIMValue = getSSIM(matched[1], matched[2]).val[0];
-//        PSNRValue = getPSNR(matched[1], matched[2]);
+        String oTemp = saveTempImage(originalBMP, "o-" + this.hashCode()).getAbsolutePath();
+        String sTemp = saveTempImage(sampleBMP, "s-" + this.hashCode()).getAbsolutePath();
+        if (!Python.isStarted()) Python.start(new AndroidPlatform(context));
+        setCW_SSIMValue(calcCW_SSIMValue(oTemp, sTemp, 30));
+        new File(oTemp).delete();
+        new File(sTemp).delete();
+
+        MSSIMValue = getMSSIM(matched[1], matched[2]);
+        SSIMValue = getSSIM(matched[1], matched[2]);
+        PSNRValue = getPSNR(matched[1], matched[2]);
     }
 
-    private class cw_ssim implements Runnable {
-        private Context context;
-        private Mat mat1, mat2;
+    /**
+     * Useless function due to the unknown passing method of mat.
+     *
+     * @param src source mat
+     * @return PyObject (PIL Image)
+     */
+    public PyObject cvtMat(Mat src) {
+        return Python.getInstance().getModule("SSIM").callAttr("cvt_mat", src);
+    }
 
-        public cw_ssim(Context context, Mat mat1, Mat mat2) throws CvException {
-            if (!mat1.size().equals(mat2.size()))
-                throw new CvException("Sizes of two mats are not equivalent");
-            this.context = context;
-            this.mat1 = mat1;
-            this.mat2 = mat2;
-            initPython();
-        }
+    /**
+     * Compute the complex wavelet SSIM (CW-SSIM) value from the reference image to the target image.
+     *
+     * @param img1  Input image to compare the reference image to. This may be a PIL Image object or,
+     *              to save time, an SSIMImage object (e.g. the img member of another SSIM object).
+     * @param img2  Same as img1
+     * @param width width for the wavelet convolution (default: 30)
+     * @return CW-SSIM Value
+     */
+    public double calcCW_SSIMValue(String img1, String img2, int width) {
+        return Python.getInstance().getModule("SSIM").callAttr("SSIM", img1).callAttr("cw_ssim_value", img2, width).toDouble();
+    }
 
-        private void initPython() {
-            if (!Python.isStarted()) {
-                Python.start(new AndroidPlatform(context));
-            }
-        }
-
-        /**
-         * Compute the complex wavelet SSIM (CW-SSIM) value from the reference image to the target image.
-         *
-         * @param img1  Input image to compare the reference image to. This may be a PIL Image object or,
-         *              to save time, an SSIMImage object (e.g. the img member of another SSIM object).
-         * @param img2  Same as img1
-         * @param width width for the wavelet convolution (default: 30)
-         * @return CW-SSIM Value
-         */
-        public double calcCW_SSIMValue(PyObject img1, PyObject img2, int width) {
-            return Python.getInstance().getModule("SSIM").callAttr("SSIM", img1).callAttr("cw_ssim_value", img2, width).toDouble();
-        }
-
-        public PyObject cvtMat(Mat src) {
-            return Python.getInstance().getModule("SSIM").callAttr("cvtMat", src);
-        }
-
-        @Override
-        public void run() {
-            setCW_SSIMValue(calcCW_SSIMValue(cvtMat(mat1), cvtMat(mat2), 30));
+    private File saveTempImage(Bitmap bitmap, String prefix) throws IOException {
+        File outputDir = context.getCacheDir(); // context being the Activity pointer
+        File tempFile = File.createTempFile(prefix, ".png", outputDir);
+        try (FileOutputStream out = new FileOutputStream(tempFile)) {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+            // PNG is a lossless format, the compression factor (100) is ignored
+            return tempFile;
+        } catch (IOException ignored) {
+            throw new IOException("Fail to create temp file!");
         }
     }
 
-//    public enum Find {More, Less, Equal}
+    //    public enum Find {More, Less, Equal}
 }
