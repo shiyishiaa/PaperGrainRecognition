@@ -52,10 +52,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
 
+import com.grain.grain.MatchUtils;
 import com.grain.grain.R;
 import com.grain.grain.io.FileUtils;
-import com.grain.grain.match.MatchUtils;
-import com.grain.grain.match.WriteResult;
+import com.grain.grain.io.WriteResult;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
@@ -143,6 +143,7 @@ public class recognition extends AppCompatActivity {
     private Animator currentAnimator;
     private int shortAnimationDuration;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.CHINA);
+    private MatchUtils[] utils;
     private Handler pathHandler = new Handler(Looper.getMainLooper(), msg -> {
         switch (msg.what) {
             case ORIGINAL_CHANGED:
@@ -156,7 +157,6 @@ public class recognition extends AppCompatActivity {
         }
     });
     private Handler toastHandler = new Handler(Looper.getMainLooper());
-    private MatchUtils[] utils;
     private Handler matchHandler = new Handler(Looper.getMainLooper(), msg -> {
         switch (msg.what) {
             default:
@@ -193,7 +193,7 @@ public class recognition extends AppCompatActivity {
         }
     });
 
-    private static Message createEmptyMessage(int msg) {
+    public static Message createEmptyMessage(int msg) {
         Message message = new Message();
         message.what = msg;
         return message;

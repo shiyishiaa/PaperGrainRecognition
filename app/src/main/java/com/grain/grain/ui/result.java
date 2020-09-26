@@ -16,6 +16,8 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Display;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -40,7 +42,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.grain.grain.R;
 import com.grain.grain.io.Columns;
-import com.grain.grain.io.PaperGrainDBHelper;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -54,8 +55,11 @@ import static com.grain.grain.io.Columns.COLUMN_NAME_TIME_START;
 import static com.grain.grain.io.Columns.TABLE_NAME;
 import static com.grain.grain.io.Columns._COUNT;
 import static com.grain.grain.io.Columns._ID;
+import static com.grain.grain.io.PaperGrainDBHelper.DATABASE_NAME;
+import static com.grain.grain.io.PaperGrainDBHelper.updateCount;
 
 public class result extends AppCompatActivity {
+    private final Handler toastHandler = new Handler(Looper.getMainLooper());
     private TextView textHistory, textGroup;
     private TextView textSSIM, textCW_SSIMValue, textMatchResult, textResult;
     private TextView labelOriginalPicture, labelSamplePicture;
@@ -69,11 +73,11 @@ public class result extends AppCompatActivity {
     // xEnd stores the location where swipe gesture ends.
     private float xEnd = 0;
     private History history;
-
     private Animator currentAnimator;
     private int shortAnimationDuration;
     private SharedPreferences Config;
     private String originalResult, sampleResult, SURFResult;
+    private Toast toast;
 
     @SuppressWarnings("UnusedReturnValue")
     public static boolean deleteRecursive(File fileOrDirectory) {
@@ -273,7 +277,7 @@ public class result extends AppCompatActivity {
                         .setIcon(R.drawable.warning)
                         .setView(dialogView)
                         .setPositiveButton(R.string.textConfirm, (dialog, which) -> {
-                            SQLiteDatabase.deleteDatabase(getDatabasePath(PaperGrainDBHelper.DATABASE_NAME));
+                            SQLiteDatabase.deleteDatabase(getDatabasePath(DATABASE_NAME));
                             spinnerHistory.setEnabled(false);
                             spinnerHistory.setAdapter(new SimpleCursorAdapter(result.this, R.layout.spinner, null, null, null, 0));
                             spinnerGroup.setEnabled(false);
@@ -303,7 +307,7 @@ public class result extends AppCompatActivity {
         RecognitionLayout = findViewById(R.id.RecognitionLayout);
         ResultLayout = findViewById(R.id.ResultLayout);
 
-        history = new History(this, SQLiteDatabase.openOrCreateDatabase(this.getDatabasePath(PaperGrainDBHelper.DATABASE_NAME), null));
+        history = new History(this, SQLiteDatabase.openOrCreateDatabase(this.getDatabasePath(DATABASE_NAME), null));
         shortAnimationDuration = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
         Config = getSharedPreferences("Config", MODE_PRIVATE);
@@ -487,16 +491,23 @@ public class result extends AppCompatActivity {
     }
 
     private void backgroundedToast(@StringRes int msg, @DisplayTime int time) {
+        backgroundedToast(this.getString(msg), time);
+    }
+
+    private void backgroundedToast(String msg, @DisplayTime int time) {
         LayoutInflater inflater = getLayoutInflater();
         View layout = inflater.inflate(R.layout.toast, findViewById(R.id.custom_toast_container));
 
         TextView text = layout.findViewById(R.id.textToast);
         text.setText(msg);
-
-        Toast toast = new Toast(getApplicationContext());
-        toast.setDuration(time);
+        if (toast == null)
+            toast = new Toast(this);
         toast.setView(layout);
-        toast.show();
+        toast.setDuration(time);
+        toast.cancel();
+        toastHandler.postDelayed(() -> {
+            toast.show();   // 会发现延迟之后就显示出来了
+        }, 20);  // 这个时间是自己拍脑袋写的，不影响体验就好，试过使用post也不行
     }
 
     @IntDef({Toast.LENGTH_LONG, Toast.LENGTH_SHORT})
@@ -549,7 +560,7 @@ public class result extends AppCompatActivity {
                     " SET " + COLUMN_NAME_DELETED + "=" + 1 +
                     " WHERE " + _COUNT + "=" + (position + 1);
             database.execSQL(delete);
-            PaperGrainDBHelper.updateCount(database);
+            updateCount(database);
             String sql = " SELECT " +
                     _ID + "," + _COUNT + "," + COLUMN_NAME_TIME_START +
                     " FROM " +
