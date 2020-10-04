@@ -102,9 +102,9 @@ public class recognition extends AppCompatActivity {
             MATCH_ABORTED = 0xDD03,
             WRITE_FINISHED = 0xDD04;
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors();
-    private static final ThreadPoolExecutor CPUExecutor = new ThreadPoolExecutor(
-            NUMBER_OF_CORES + 1,
-            2 * NUMBER_OF_CORES,
+    private static final ThreadPoolExecutor MatchExecutor = new ThreadPoolExecutor(
+            NUMBER_OF_CORES,
+            NUMBER_OF_CORES,
             10,
             TimeUnit.MINUTES,
             new ArrayBlockingQueue<>(10),
@@ -258,7 +258,7 @@ public class recognition extends AppCompatActivity {
     }
 
     private boolean isMatching() {
-        return CPUExecutor.getActiveCount() != 0;
+        return MatchExecutor.getActiveCount() != 0;
     }
 
     private void updateStartTime(String s, MatchUtils[] utils) {
@@ -353,8 +353,10 @@ public class recognition extends AppCompatActivity {
                     }
                 }, 2000);
                 return true;
-            } else
+            } else {
+                MatchUtils.deleteRecursive(getApplicationContext().getCacheDir());
                 finish();
+            }
         }
         return super.onKeyDown(keyCode, event);
     }
@@ -731,8 +733,8 @@ public class recognition extends AppCompatActivity {
 
         utils = new MatchUtils[14];
         for (int i = 0; i < utils.length; i++) {
-            utils[i] = new MatchUtils(this, originalPath, samplePath);
-            CPUExecutor.execute(utils[i]);
+            utils[i] = new MatchUtils(getApplicationContext(), originalPath, samplePath);
+            MatchExecutor.execute(utils[i]);
         }
         matchHandler.sendMessage(createEmptyMessage(START_MATCHING));
         backgroundedToast(R.string.textStartMatching, Toast.LENGTH_SHORT);
@@ -750,12 +752,12 @@ public class recognition extends AppCompatActivity {
 
         final long time_out = 5;//超时时间，自己根据任务特点设置
         //第一步，调用shutdown等待在执行的任务和提交等待的任务执行，同时不允许提交任务
-        CPUExecutor.shutdown();
+        MatchExecutor.shutdown();
         try {
-            if (!CPUExecutor.awaitTermination(time_out, TimeUnit.SECONDS)) {
+            if (!MatchExecutor.awaitTermination(time_out, TimeUnit.SECONDS)) {
                 //如果等待一段时间后还有任务在执行中被中断或者有任务提交了未执行
                 //1.正在执行被中断的任务需要编写任务代码的时候响应中断
-                List<Runnable> waitToExecuteTaskList = CPUExecutor.shutdownNow();
+                List<Runnable> waitToExecuteTaskList = MatchExecutor.shutdownNow();
                 //2.处理提交了未执行的任务，一般情况不会出现
 //                for (Runnable runnable : waitToExecuteTaskList) {
 //
@@ -763,7 +765,7 @@ public class recognition extends AppCompatActivity {
             }
         } catch (InterruptedException e) {//如果被中断了
             //1.正在执行被中断的任务需要编写任务代码的时候响应中断
-            List<Runnable> waitToExecuteTaskList = CPUExecutor.shutdownNow();
+            List<Runnable> waitToExecuteTaskList = MatchExecutor.shutdownNow();
             //2.处理提交了未执行的任务，一般情况不会出现
 //            for (Runnable runnable : waitToExecuteTaskList) {
 //
@@ -772,7 +774,6 @@ public class recognition extends AppCompatActivity {
     }
 
     private void startWriting() {
-        backgroundedToast(R.string.textProcessDone, Toast.LENGTH_SHORT);
         Log.i("Match time cost", Math.abs(
                 dateFormat.parse(start, new ParsePosition(0)).getTime() -
                         dateFormat.parse(end, new ParsePosition(0)).getTime()) + " ms");
@@ -795,7 +796,7 @@ public class recognition extends AppCompatActivity {
             index++;
         } while (iterator.hasNext());
         utils = midUtils;
-
+        /* Store results */
         WriteResult[] result = new WriteResult[10];
         for (short i = 0; i < result.length; i++) {
             result[i] = new WriteResult(this, utils[i], i);

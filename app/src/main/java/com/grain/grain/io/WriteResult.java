@@ -72,7 +72,7 @@ public class WriteResult implements Runnable {
             File sampleDir = new File(storageDir, context.getString(R.string.SampleFolderName));
             if (!sampleDir.exists()) sampleDir.mkdirs();
 
-            /* Image files */
+            /* Construct Image files */
             File original = new File(originalDir, index + ".png");
             File sample = new File(sampleDir, index + ".png");
             File SURF = new File(SURFDir, index + ".png");
@@ -82,7 +82,7 @@ public class WriteResult implements Runnable {
             saveBitmap(utils.sampleBMP, sample);
             saveBitmap(utils.surfBMP, SURF);
 
-            /* Database instance */
+            /* Create Database instance */
             PaperGrainDBHelper helper = new PaperGrainDBHelper(context);
             SQLiteDatabase write = helper.getWritableDatabase();
             ContentValues values = new ContentValues();

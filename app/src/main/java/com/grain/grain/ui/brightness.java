@@ -42,6 +42,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
+import static com.grain.grain.MatchUtils.deleteRecursive;
 import static com.grain.grain.ui.recognition.createEmptyMessage;
 
 public class brightness extends AppCompatActivity {
@@ -68,6 +69,27 @@ public class brightness extends AppCompatActivity {
     private OutputStream outputStream;
     private boolean mBackKeyPressed = false;
     private SharedPreferences Config;
+    // 搜索到新设备广播广播接收器
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                bluetoothDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                new Thread(() -> {
+                    try {
+                        bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(defaultUuid);
+                        bluetoothSocket.connect();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+                autoCheckBluetoothSocket();
+                SharedPreferences.Editor editor = Config.edit();
+                editor.putString("MAC", bluetoothDevice.getAddress());
+                editor.apply();
+            }
+        }
+    };
     private CompoundButton.OnCheckedChangeListener listener = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -114,27 +136,6 @@ public class brightness extends AppCompatActivity {
             }
         }
     });
-    // 搜索到新设备广播广播接收器
-    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                bluetoothDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                new Thread(() -> {
-                    try {
-                        bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(defaultUuid);
-                        bluetoothSocket.connect();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }).start();
-                autoCheckBluetoothSocket();
-                SharedPreferences.Editor editor = Config.edit();
-                editor.putString("MAC", bluetoothDevice.getAddress());
-                editor.apply();
-            }
-        }
-    };
     private Toast toast;
 
     @Override
@@ -157,8 +158,10 @@ public class brightness extends AppCompatActivity {
                     }
                 }, 2000);
                 return true;
-            } else
+            } else {
+                deleteRecursive(this.getCacheDir());
                 finish();
+            }
         }
         return super.onKeyDown(keyCode, event);
     }

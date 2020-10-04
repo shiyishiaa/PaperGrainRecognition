@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
 
-import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 
@@ -37,6 +36,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 
 import static org.opencv.core.Core.absdiff;
@@ -953,6 +953,13 @@ public class MatchUtils implements Runnable {
         return dst;
     }
 
+    public static boolean deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory.isDirectory())
+            for (File child : Objects.requireNonNull(fileOrDirectory.listFiles()))
+                deleteRecursive(child);
+        return fileOrDirectory.delete();
+    }
+
     public String[] getPath() {
         return new String[]{original, sample};
     }
@@ -1004,57 +1011,41 @@ public class MatchUtils implements Runnable {
     @Override
     public synchronized void run() {
         try {
-            match();
+            Mat[] mats = new Mat[]{
+                    imread(original, CV_LOAD_IMAGE_GRAYSCALE),
+                    imread(sample, CV_LOAD_IMAGE_GRAYSCALE)
+            };
+            Mat[] regions;
+            double threshold0;//, threshold1;
+            Mat[] binary = new Mat[]{new Mat(), new Mat()};
+            do {
+                do {
+                    regions = randomSubmat(mats);
+                    threshold0 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[0]), 3));
+                    //threshold1 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[1]), 3));
+                } while (threshold0 == -1); //|| threshold1 == -1);
+                // DO NOT use Otsu method.
+                threshold(regions[0], binary[0], threshold0, 255, Imgproc.THRESH_BINARY);
+                threshold(regions[1], binary[1], threshold0, 255, Imgproc.THRESH_BINARY);
+            } while (whitePercent(binary[0]) >= 0.95 || whitePercent(binary[1]) >= 0.95);
+            Mat[] matched = surf(binary[0], binary[1]);
+
+            surfBMP = matToBitmap(matched[0]);
+            originalBMP = matToBitmap(matched[1]);
+            sampleBMP = matToBitmap(matched[2]);
+
+            // FIXME: IO operation in a mainly CPU thread, which should be optimized later in some way.
+            String oTemp = saveTempImage(originalBMP, "o-" + this.hashCode()).getAbsolutePath();
+            String sTemp = saveTempImage(sampleBMP, "s-" + this.hashCode()).getAbsolutePath();
+            if (!Python.isStarted()) Python.start(new AndroidPlatform(context));
+            setCW_SSIMValue(calcCW_SSIMValue(oTemp, sTemp, 30));
+
+            MSSIMValue = getMSSIM(matched[1], matched[2]);
+            SSIMValue = getSSIM(matched[1], matched[2]);
+            PSNRValue = getPSNR(matched[1], matched[2]);
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void match() throws IOException {
-        Mat[] mats = new Mat[]{
-                imread(original, CV_LOAD_IMAGE_GRAYSCALE),
-                imread(sample, CV_LOAD_IMAGE_GRAYSCALE)
-        };
-        Mat[] regions;
-        double threshold0;//, threshold1;
-        Mat[] binary = new Mat[]{new Mat(), new Mat()};
-        do {
-            do {
-                regions = randomSubmat(mats);
-                threshold0 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[0]), 3));
-                //threshold1 = autoGetThreshold(smoothNTimes(calcGrayscaleHist(regions[1]), 3));
-            } while (threshold0 == -1); //|| threshold1 == -1);
-            // DO NOT use Otsu method.
-            threshold(regions[0], binary[0], threshold0, 255, Imgproc.THRESH_BINARY);
-            threshold(regions[1], binary[1], threshold0, 255, Imgproc.THRESH_BINARY);
-        } while (whitePercent(binary[0]) >= 0.95 || whitePercent(binary[1]) >= 0.95);
-        Mat[] matched = surf(binary[0], binary[1]);
-
-        surfBMP = matToBitmap(matched[0]);
-        originalBMP = matToBitmap(matched[1]);
-        sampleBMP = matToBitmap(matched[2]);
-
-        String oTemp = saveTempImage(originalBMP, "o-" + this.hashCode()).getAbsolutePath();
-        String sTemp = saveTempImage(sampleBMP, "s-" + this.hashCode()).getAbsolutePath();
-        if (!Python.isStarted()) Python.start(new AndroidPlatform(context));
-        setCW_SSIMValue(calcCW_SSIMValue(oTemp, sTemp, 30));
-        new File(oTemp).delete();
-        new File(sTemp).delete();
-
-        MSSIMValue = getMSSIM(matched[1], matched[2]);
-        SSIMValue = getSSIM(matched[1], matched[2]);
-        PSNRValue = getPSNR(matched[1], matched[2]);
-    }
-
-    /**
-     * Useless function due to the unknown passing method of mat.
-     *
-     * @param src source mat
-     * @return PyObject (PIL Image)
-     */
-    public PyObject cvtMat(Mat src) {
-        return Python.getInstance().getModule("SSIM").callAttr("cvt_mat", src);
     }
 
     /**

@@ -40,6 +40,7 @@ import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.grain.grain.MatchUtils;
 import com.grain.grain.R;
 import com.grain.grain.io.Columns;
 
@@ -48,8 +49,10 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 
+import static com.grain.grain.MatchUtils.deleteRecursive;
 import static com.grain.grain.io.Columns.COLUMN_NAME_DELETED;
 import static com.grain.grain.io.Columns.COLUMN_NAME_TIME_START;
 import static com.grain.grain.io.Columns.TABLE_NAME;
@@ -78,14 +81,7 @@ public class result extends AppCompatActivity {
     private SharedPreferences Config;
     private String originalResult, sampleResult, SURFResult;
     private Toast toast;
-
-    @SuppressWarnings("UnusedReturnValue")
-    public static boolean deleteRecursive(File fileOrDirectory) {
-        if (fileOrDirectory.isDirectory())
-            for (File child : Objects.requireNonNull(fileOrDirectory.listFiles()))
-                deleteRecursive(child);
-        return fileOrDirectory.delete();
-    }
+    private boolean mBackKeyPressed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,8 +102,20 @@ public class result extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
-            writeConfig();
-            this.finish();
+            if (!mBackKeyPressed) {
+                backgroundedToast(R.string.textOneMoreClickToExit, Toast.LENGTH_SHORT);
+                mBackKeyPressed = true;
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        mBackKeyPressed = false;
+                    }
+                }, 2000);
+                return true;
+            } else {
+                deleteRecursive(this.getCacheDir());
+                finish();
+            }
         }
         return super.onKeyDown(keyCode, event);
     }
@@ -284,7 +292,7 @@ public class result extends AppCompatActivity {
 
                             File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES + "/" + getString(R.string.ResultFolderName) + "/");
                             if (storageDir != null)
-                                deleteRecursive(storageDir);
+                                MatchUtils.deleteRecursive(storageDir);
 
                             imgBtnMatch.setImageBitmap(null);
                             imgBtnOriginal.setImageBitmap(null);
